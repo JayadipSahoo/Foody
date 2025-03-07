@@ -3,26 +3,83 @@ import { View, Text, TextInput, Image, StyleSheet, FlatList, TouchableOpacity } 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ScreenWidth } from 'react-native-elements/dist/helpers';
 
-export default function HomeScreen() {
-    const categories = ['All', 'Hot Dog', 'Burger', 'Pizza'];
-    const [selectedCategory, setSelectedCategory] = useState('All');
-
+export default function HomeScreen({ navigation }) {
+   
     const restaurants = [
         {
             id: '1',
-            name: 'Rose Garden Restaurant',
-            tags: 'Burger - Chicken - Rice - Wings',
+            name: 'Aunty IIIT Lunch Dinner Service',
+            tags: 'Veg,Non-Veg Meals and Tiffin Service',
             rating: 4.7,
             deliveryFee: 'Free',
-            deliveryTime: '20 min',
+            deliveryTime: '01:00 PM - 02:00 PM',
+            menu: {
+                Lunch: [
+                    {
+                        id: '1',
+                        name: 'Veg Thali',
+                        description: 'Rice, 2 Rotis, Dal, 2 Sabzi, Salad, Papad',
+                        price: '₹80',
+                        isVeg: true,
+                    },
+                    {
+                        id: '2',
+                        name: 'Non-Veg Thali',
+                        description: 'Rice, 2 Rotis, Dal, Chicken Curry, Salad, Papad',
+                        price: '₹80',
+                        isVeg: false,
+                    },
+                ],
+                Dinner: [
+                    {
+                        id: '3',
+                        name: 'Veg Thali',
+                        description: '4 Rotis, Dal Fry',
+                        price: '₹70',
+                        isVeg: true,
+                    },
+                    {
+                        id: '4',
+                        name: 'Non-Veg Thali',
+                        description: '4 Rotis, Butter Chicken',
+                        price: '₹80',
+                        isVeg: false,
+                    },
+                ],
+            },
         },
         {
             id: '2',
-            name: 'Urban Dine Cafe',
-            tags: 'Pasta - Salad - Desserts',
+            name: 'Chai Lelo Paratha',
+            tags: 'Dinner Veg',
             rating: 4.5,
             deliveryFee: 'Free',
-            deliveryTime: '15 min',
+            deliveryTime: '09:00 PM - 09:30 PM',
+            menu: {
+                Dinner: [
+                    {
+                        id: '1',
+                        name: 'Aloo Paratha',
+                        description: 'Stuffed with spiced potatoes',
+                        price: '₹50',
+                        isVeg: true,
+                    },
+                    {
+                        id: '2',
+                        name: 'Gobi Paratha',
+                        description: 'Stuffed with spiced cauliflower',
+                        price: '₹60',
+                        isVeg: true,
+                    },
+                    {
+                        id: '3',
+                        name: 'Paneer Paratha',
+                        description: 'Stuffed with spiced paneer',
+                        price: '₹70',
+                        isVeg: true,
+                    },
+                ],
+            },
         },
     ];
 
@@ -41,7 +98,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Welcome Text */}
-            <Text style={styles.welcomeText}>Hey Halal, Good Afternoon!</Text>
+            <Text style={styles.welcomeText}>Hey Hungry, Good Afternoon!</Text>
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
@@ -53,47 +110,19 @@ export default function HomeScreen() {
                 />
             </View>
 
-            {/* Categories */}
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>All Categories</Text>
-                <Text style={styles.seeAll}>See All</Text>
-            </View>
-            <FlatList
-                data={categories}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item}
-                contentContainerStyle={styles.categoryContainer}
-                renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[
-                            styles.categoryButton,
-                            selectedCategory === item && styles.activeCategory,
-                        ]}
-                        onPress={() => setSelectedCategory(item)}
-                    >
-                        <Text
-                            style={[
-                                styles.categoryText,
-                                selectedCategory === item && styles.activeCategoryText,
-                            ]}
-                        >
-                            {item}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-            />
-
             {/* Restaurants */}
             <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Open Restaurants</Text>
+                <Text style={styles.sectionTitle}>Restaurants Available Near You</Text>
                 <Text style={styles.seeAll}>See All</Text>
             </View>
             <FlatList
                 data={restaurants}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <View style={styles.restaurantCard}>
+                    <TouchableOpacity 
+                        style={styles.restaurantCard}
+                        onPress={() => navigation.navigate('RestaurantDetails', { restaurant: item })}
+                    >
                         <View style={styles.restaurantImage} />
                         <View style={styles.restaurantInfo}>
                             <Text style={styles.restaurantName}>{item.name}</Text>
@@ -104,7 +133,7 @@ export default function HomeScreen() {
                                 <Text style={styles.restaurantTime}>{item.deliveryTime}</Text>
                             </View>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 )}
             />
         </View>
@@ -121,6 +150,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginTop: 20,
         marginBottom: 10,
     },
     deliveryText: {
