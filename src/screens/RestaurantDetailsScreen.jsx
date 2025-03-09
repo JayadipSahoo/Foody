@@ -11,47 +11,94 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import 'react-native-gesture-handler';
+import { useCart } from '../context/CartContext';
 
 const { width } = Dimensions.get('window');
 
 export default function RestaurantDetailsScreen({ route, navigation }) {
     const [selectedCategory, setSelectedCategory] = useState('Dinner'); // Default to Dinner
-
-    const { menu } = route.params?.restaurant; // Get the menu from the restaurant params
+    const { addToCart, removeFromCart, getItemQuantity, getItemCount } = useCart();
+    const restaurant = route.params?.restaurant;
+    const { menu } = restaurant;
     const menuCategories = Object.keys(menu); // Get the categories dynamically
 
-    const renderMenuItem = ({ item }) => (
-        <View style={styles.menuItem}>
-            <View style={styles.menuItemContent}>
-                <View style={styles.menuItemHeader}>
-                    <View style={styles.nameContainer}>
-                        {item.isVeg ? (
-                            <View style={[styles.vegIcon, { borderColor: 'green' }]} >
-                                <View style={[styles.vegDot, { backgroundColor: 'green' }]} />
-                            </View>
-                        ) : (
-                            <View style={[styles.vegIcon, { borderColor: 'red' }]} >
-                                <View style={[styles.vegDot, { backgroundColor: 'red' }]} />
-                            </View>
-                        )}
-                        <Text style={styles.menuItemName}>{item.name}</Text>
+    const handleAddToCart = (item) => {
+        addToCart(item, restaurant.id, restaurant.name);
+    };
+
+    const handleRemoveFromCart = (itemId) => {
+        removeFromCart(itemId);
+    };
+
+    const renderMenuItem = ({ item }) => {
+        const quantity = getItemQuantity(item.id);
+        
+        return (
+            <View style={styles.menuItem}>
+                <View style={styles.menuItemContent}>
+                    <View style={styles.menuItemHeader}>
+                        <View style={styles.nameContainer}>
+                            {item.isVeg ? (
+                                <View style={[styles.vegIcon, { borderColor: 'green' }]} >
+                                    <View style={[styles.vegDot, { backgroundColor: 'green' }]} />
+                                </View>
+                            ) : (
+                                <View style={[styles.vegIcon, { borderColor: 'red' }]} >
+                                    <View style={[styles.vegDot, { backgroundColor: 'red' }]} />
+                                </View>
+                            )}
+                            <Text style={styles.menuItemName}>{item.name}</Text>
+                        </View>
+                        <Text style={styles.menuItemPrice}>{item.price}</Text>
                     </View>
-                    <Text style={styles.menuItemPrice}>{item.price}</Text>
+                    <Text style={styles.menuItemDescription}>{item.description}</Text>
+                    
+                    {quantity > 0 ? (
+                        <View style={styles.quantityControls}>
+                            <TouchableOpacity 
+                                style={styles.quantityButton}
+                                onPress={() => handleRemoveFromCart(item.id)}
+                            >
+                                <Ionicons name="remove" size={20} color="#FFA726" />
+                            </TouchableOpacity>
+                            <Text style={styles.quantity}>{quantity}</Text>
+                            <TouchableOpacity 
+                                style={styles.quantityButton}
+                                onPress={() => handleAddToCart(item)}
+                            >
+                                <Ionicons name="add" size={20} color="#FFA726" />
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <TouchableOpacity 
+                            style={styles.addButton}
+                            onPress={() => handleAddToCart(item)}
+                        >
+                            <Text style={styles.addButtonText}>ADD</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
-                <Text style={styles.menuItemDescription}>{item.description}</Text>
-                <TouchableOpacity style={styles.addButton}>
-                    <Text style={styles.addButtonText}>ADD</Text>
-                </TouchableOpacity>
             </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <View style={styles.container}>
-            {/* Header with back button */}
+            {/* Header with back button and cart icon */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={24} color="#000" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={styles.cartButton}
+                    onPress={() => navigation.navigate('Cart')}
+                >
+                    <Ionicons name="cart-outline" size={25} color="#000" />
+                    {getItemCount() > 0 && (
+                        <View style={styles.cartBadge}>
+                            <Text style={styles.cartBadgeText}>{getItemCount()}</Text>
+                        </View>
+                    )}
                 </TouchableOpacity>
             </View>
 
@@ -63,11 +110,11 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
                         style={styles.bannerImage}
                     />
                     <View style={styles.restaurantInfo}>
-                        <Text style={styles.restaurantName}>{route.params?.restaurant?.name}</Text>
-                        <Text style={styles.restaurantTags}>{route.params?.restaurant?.tags}</Text>
+                        <Text style={styles.restaurantName}>{restaurant?.name}</Text>
+                        <Text style={styles.restaurantTags}>{restaurant?.tags}</Text>
                         <View style={styles.restaurantMeta}>
-                            <Text style={styles.rating}>⭐ {route.params?.restaurant?.rating}</Text>
-                            <Text style={styles.timing}>{route.params?.restaurant?.deliveryTime}</Text>
+                            <Text style={styles.rating}>⭐ {restaurant?.rating}</Text>
+                            <Text style={styles.timing}>{restaurant?.deliveryTime}</Text>
                         </View>
                     </View>
                 </View>
@@ -110,13 +157,16 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#fff'
     },
     header: {
-        padding: 16,
+        padding: 26,
         flexDirection: 'row',
         alignItems: 'center',
-    },
+        gap: 15,
+        marginTop: 20,
+    }
+      ,
     bannerContainer: {
         width: width,
         height: 200,
@@ -235,5 +285,41 @@ const styles = StyleSheet.create({
     addButtonText: {
         color: '#FFA726',
         fontWeight: 'bold',
+    },
+    cartButton: {
+        position: 'relative',
+    },
+    cartBadge: {
+        position: 'absolute',
+        right: -8,
+        top: -8,
+        backgroundColor: '#FFA726',
+        borderRadius: 10,
+        width: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    cartBadgeText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    quantityControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8f8f8',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+        alignSelf: 'flex-start',
+    },
+    quantityButton: {
+        padding: 8,
+    },
+    quantity: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginHorizontal: 12,
+        color: '#2B2B2B',
     },
 }); 

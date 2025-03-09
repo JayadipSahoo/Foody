@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
     },
     notificationContainer: {
         position: 'relative',
+        
     },
     notificationBadge: {
         position: 'absolute',
