@@ -10,7 +10,7 @@ export default function HomeScreen({ navigation }) {
     const restaurants = [
         {
             id: '1',
-            name: 'Aunty IIIT Lunch Dinner Service',
+            name: 'Aunty IIIT Lunch Dinner',
             tags: 'Veg, Non-Veg Meals and Tiffin Service',
             rating: 4.7,
             deliveryFee: 'Free',
@@ -230,8 +230,8 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     restaurantImage: {
-        width: 80,
-        height: 80,
+        width: 90,
+        height: 90,
         backgroundColor: '#D9D9D9',
     },
     restaurantInfo: {
