@@ -8,7 +8,7 @@ export default function WelcomeScreen({ navigation }) {
                 <Text style={styles.emoji}>👋</Text>
                 <Text style={styles.title}>Welcome to Meshi</Text>
                 <Text style={styles.subtitle}>
-                    Order food from the best restaurants and get it delivered at your doorstep
+                    Every Meal with Homely Feel
                 </Text>
             </View>
             

@@ -17,8 +17,8 @@ export default function SignInScreen({ navigation }) {
 
     const handleSignIn = () => {
         // Here you would implement your authentication logic
-        // For now, we'll just navigate to Home
-        navigation.replace('Home');
+        // For now, we'll just navigate to Main
+        navigation.replace('Main');
     };
 
     return (

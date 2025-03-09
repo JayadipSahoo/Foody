@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
     View,
     Text,
@@ -12,15 +12,32 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import 'react-native-gesture-handler';
 import { useCart } from '../context/CartContext';
+import { PreferencesContext } from '../context/PreferencesContext';
 
 const { width } = Dimensions.get('window');
 
 export default function RestaurantDetailsScreen({ route, navigation }) {
-    const [selectedCategory, setSelectedCategory] = useState('Dinner'); // Default to Dinner
+    const [selectedCategory, setSelectedCategory] = useState('Dinner');
     const { addToCart, removeFromCart, getItemQuantity, getItemCount } = useCart();
+    const { isVegOnly } = useContext(PreferencesContext);
     const restaurant = route.params?.restaurant;
     const { menu } = restaurant;
-    const menuCategories = Object.keys(menu); // Get the categories dynamically
+
+    // Filter menu categories to only show categories that have items (after veg filtering)
+    const filteredMenu = {};
+    Object.keys(menu).forEach(category => {
+        const filteredItems = menu[category].filter(item => !isVegOnly || item.isVeg);
+        if (filteredItems.length > 0) {
+            filteredMenu[category] = filteredItems;
+        }
+    });
+    
+    const menuCategories = Object.keys(filteredMenu);
+
+    // If the selected category is not in filtered menu, select the first available category
+    if (menuCategories.length > 0 && !menuCategories.includes(selectedCategory)) {
+        setSelectedCategory(menuCategories[0]);
+    }
 
     const handleAddToCart = (item) => {
         addToCart(item, restaurant.id, restaurant.name);
@@ -28,6 +45,12 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
 
     const handleRemoveFromCart = (itemId) => {
         removeFromCart(itemId);
+    };
+
+    const handleCartPress = () => {
+        navigation.navigate('Main', {
+            screen: 'Cart'
+        });
     };
 
     const renderMenuItem = ({ item }) => {
@@ -39,11 +62,11 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
                     <View style={styles.menuItemHeader}>
                         <View style={styles.nameContainer}>
                             {item.isVeg ? (
-                                <View style={[styles.vegIcon, { borderColor: 'green' }]} >
+                                <View style={[styles.vegIcon, { borderColor: 'green' }]}>
                                     <View style={[styles.vegDot, { backgroundColor: 'green' }]} />
                                 </View>
                             ) : (
-                                <View style={[styles.vegIcon, { borderColor: 'red' }]} >
+                                <View style={[styles.vegIcon, { borderColor: 'red' }]}>
                                     <View style={[styles.vegDot, { backgroundColor: 'red' }]} />
                                 </View>
                             )}
@@ -91,9 +114,9 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
                 </TouchableOpacity>
                 <TouchableOpacity 
                     style={styles.cartButton}
-                    onPress={() => navigation.navigate('Cart')}
+                    onPress={handleCartPress}
                 >
-                    <Ionicons name="cart-outline" size={25} color="#000" />
+                    <Ionicons name="cart-outline" size={24} color="#000" />
                     {getItemCount() > 0 && (
                         <View style={styles.cartBadge}>
                             <Text style={styles.cartBadgeText}>{getItemCount()}</Text>
@@ -119,36 +142,44 @@ export default function RestaurantDetailsScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                {/* Menu Categories */}
-                <View style={styles.categoriesContainer}>
-                    {menuCategories.map((category) => (
-                        <TouchableOpacity
-                            key={category}
-                            style={[
-                                styles.categoryButton,
-                                selectedCategory === category && styles.selectedCategory,
-                            ]}
-                            onPress={() => setSelectedCategory(category)}
-                        >
-                            <Text
-                                style={[
-                                    styles.categoryText,
-                                    selectedCategory === category && styles.selectedCategoryText,
-                                ]}
-                            >
-                                {category}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                {menuCategories.length > 0 ? (
+                    <>
+                        <View style={styles.categoriesContainer}>
+                            {menuCategories.map((category) => (
+                                <TouchableOpacity
+                                    key={category}
+                                    style={[
+                                        styles.categoryButton,
+                                        selectedCategory === category && styles.selectedCategory,
+                                    ]}
+                                    onPress={() => setSelectedCategory(category)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.categoryText,
+                                            selectedCategory === category && styles.selectedCategoryText,
+                                        ]}
+                                    >
+                                        {category}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
 
-                {/* Menu Items */}
-                <FlatList
-                    data={menu[selectedCategory]} // Use the selected category's menu
-                    renderItem={renderMenuItem}
-                    keyExtractor={(item) => item.id}
-                    scrollEnabled={false}
-                />
+                        <FlatList
+                            data={filteredMenu[selectedCategory]}
+                            renderItem={renderMenuItem}
+                            keyExtractor={(item) => item.id}
+                            scrollEnabled={false}
+                        />
+                    </>
+                ) : (
+                    <View style={styles.noMenuContainer}>
+                        <Text style={styles.noMenuText}>
+                            No {isVegOnly ? 'vegetarian ' : ''}items available in this restaurant
+                        </Text>
+                    </View>
+                )}
             </ScrollView>
         </View>
     );
@@ -165,8 +196,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 15,
         marginTop: 20,
-    }
-      ,
+    },
     bannerContainer: {
         width: width,
         height: 200,
@@ -321,5 +351,14 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginHorizontal: 12,
         color: '#2B2B2B',
+    },
+    noMenuContainer: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    noMenuText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
     },
 }); 

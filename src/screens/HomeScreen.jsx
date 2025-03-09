@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import { View, Text, TextInput, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ScreenWidth } from 'react-native-elements/dist/helpers';
+import { PreferencesContext } from '../context/PreferencesContext';
 
 export default function HomeScreen({ navigation }) {
-   
+    const { isVegOnly } = useContext(PreferencesContext);
+
     const restaurants = [
         {
             id: '1',
             name: 'Aunty IIIT Lunch Dinner Service',
-            tags: 'Veg,Non-Veg Meals and Tiffin Service',
+            tags: 'Veg, Non-Veg Meals and Tiffin Service',
             rating: 4.7,
             deliveryFee: 'Free',
             deliveryTime: '01:00 PM - 02:00 PM',
+            isVegRestaurant: false,
             menu: {
                 Lunch: [
                     {
@@ -55,6 +58,7 @@ export default function HomeScreen({ navigation }) {
             rating: 4.5,
             deliveryFee: 'Free',
             deliveryTime: '09:00 PM - 09:30 PM',
+            isVegRestaurant: true,
             menu: {
                 Dinner: [
                     {
@@ -83,13 +87,18 @@ export default function HomeScreen({ navigation }) {
         },
     ];
 
+    const filteredRestaurants = restaurants;
+
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
-                <Ionicons name="menu-outline" size={28} color="#2B2B2B" />
-                
-                <TouchableOpacity style={styles.notificationContainer}>
+                <TouchableOpacity onPress={() => navigation.openDrawer()}>
+                    <Ionicons name="menu-outline" size={28} color="#2B2B2B" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                    style={styles.notificationContainer}
+                    onPress={() => navigation.navigate('Cart')}
+                >
                     <Ionicons name="notifications-outline" size={28} color="#2B2B2B" />
                     <View style={styles.notificationBadge}>
                         <Text style={styles.badgeText}>2</Text>
@@ -97,10 +106,8 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
             </View>
 
-            {/* Welcome Text */}
             <Text style={styles.welcomeText}>Hey Hungry, Good Afternoon!</Text>
 
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <Ionicons name="search-outline" size={20} color="#A1A1A1" />
                 <TextInput
@@ -110,13 +117,20 @@ export default function HomeScreen({ navigation }) {
                 />
             </View>
 
-            {/* Restaurants */}
+            {isVegOnly && (
+                <View style={styles.vegOnlyBanner}>
+                    <Ionicons name="leaf" size={20} color="#4CAF50" />
+                    <Text style={styles.vegOnlyText}>Showing Veg Items Only</Text>
+                </View>
+            )}
+
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Restaurants Available Near You</Text>
                 <Text style={styles.seeAll}>See All</Text>
             </View>
+
             <FlatList
-                data={restaurants}
+                data={filteredRestaurants}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <TouchableOpacity 
@@ -153,19 +167,8 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 10,
     },
-    deliveryText: {
-        fontSize: 12,
-        color: '#FFA726',
-        fontWeight: 'bold',
-    },
-    deliveryLocation: {
-        fontSize: 14,
-        color: '#2B2B2B',
-        fontWeight: 'bold',
-    },
     notificationContainer: {
         position: 'relative',
-        
     },
     notificationBadge: {
         position: 'absolute',
@@ -219,26 +222,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#FFA726',
     },
-    categoryContainer: {
-        marginBottom: 20,
-    },
-    categoryButton: {
-        backgroundColor: '#F5F5F5',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 20,
-        marginRight: 10,
-    },
-    activeCategory: {
-        backgroundColor: '#FFA726',
-    },
-    categoryText: {
-        fontSize: 14,
-        color: '#A1A1A1',
-    },
-    activeCategoryText: {
-        color: '#FFFFFF',
-    },
     restaurantCard: {
         flexDirection: 'row',
         backgroundColor: '#F5F5F5',
@@ -282,5 +265,19 @@ const styles = StyleSheet.create({
     restaurantTime: {
         fontSize: 12,
         color: '#A1A1A1',
+    },
+    vegOnlyBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#E8F5E9',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+    },
+    vegOnlyText: {
+        color: '#4CAF50',
+        marginLeft: 8,
+        fontSize: 14,
+        fontWeight: 'bold',
     },
 });
