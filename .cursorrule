@@ -1,0 +1,234 @@
+# meshi-app.cursorrule
+# ------------------------------------------------------------------------------
+# This is a CursorRule file that encapsulates the high-level specifications and
+# workflows for the Meshi Application. Use this file in cursor.ai (or a similar
+# tool) to guide your code generation for both the frontend (React Native + Expo)
+# and the backend (Node.js + MongoDB). 
+# ------------------------------------------------------------------------------
+project:
+  name: "Meshi"
+  version: "1.0.0"
+  description: >
+    A unified mobile application for students to order meals from campus vendors.
+    It provides streamlined ordering, payment, delivery management, analytics,
+    and more. The following specification outlines the end-to-end workflows
+    and feature requirements in detail.
+
+actors:
+  - name: "User (Customer)"
+    description: >
+      The primary end-user who will explore vendors, place and track orders,
+      handle payments, and manage their profile.
+  - name: "Vendor (Food Provider)"
+    description: >
+      The merchant who manages the menu, incoming orders, payments, refunds,
+      and delivery. May also have team members (delivery agents, staff) with 
+      role-based access.
+  - name: "Admin (Optional)"
+    description: >
+      An optional superuser role to oversee platform-level operations, 
+      vendor approvals, and advanced analytics.
+
+uiFlows:
+
+  # --------------------
+  # 1. USER WORKFLOWS
+  # --------------------
+  - title: "User Onboarding (Sign Up / Sign In)"
+    steps:
+      - "Display a splash screen that checks for an existing auth token."
+      - "If no token, present Sign Up/Sign In options (Email & Password or Google)."
+      - "On Sign Up: capture full name, email, mobile, default delivery location."
+      - "On Sign In: authenticate user and store token securely."
+      - "Post-auth, navigate to Home Page."
+
+  - title: "User Home Page"
+    steps:
+      - "Header with location dropdown (for selecting delivery location)."
+      - "Header includes profile icon (My Profile, My Orders, Logout) and a bell icon for notifications."
+      - "Body shows greeting (e.g., 'Hi [Name]! Welcome to Meshi')."
+      - "Display trending or recommended meals if available at the chosen location."
+      - "List of all vendors (active vs. inactive)."
+      - "Inactive vendors show a 'Notify Me' icon to alert users when vendor opens."
+
+  - title: "User Notifications"
+    steps:
+      - "Bell icon with a badge if there are new/unread notifications."
+      - "Tapping the icon opens a mini-modal with recent notifications."
+      - "A 'Show All' option leads to the main Notification page with older entries."
+
+  - title: "Vendor Menu & Ordering"
+    steps:
+      - "User taps an active vendor in the Home Page to view its menu."
+      - "Menu items show name, price, and an Add button."
+      - "On add, item changes to a counter (quantity + / - )."
+      - "A sticky cart/checkout bar appears at the bottom with the subtotal and 'Checkout' button."
+      - "If vendor is inactive, show a pop-up stating vendor not accepting orders."
+
+  - title: "Checkout & Payment"
+    steps:
+      - "Show cart items, quantities, and prices for final review."
+      - "User can modify items or remove them entirely before payment."
+      - "Delivery location selection (only among those the vendor serves)."
+      - "Expected delivery time displayed (read-only)."
+      - "Payment via in-app UPI or a payment gateway integration (no heavy redirection)."
+      - "On successful payment, show Order Confirmation and redirect to Home Page."
+
+  - title: "My Orders"
+    steps:
+      - "Accessible via the 'My Orders' link in the header/profile menu."
+      - "Provides tabs or dropdown: Active Orders, Past Orders, or All Orders."
+      - "Users can filter by date, vendor, or location."
+      - "Allows Modify/Cancel if vendor policy/time-window permits."
+      - "Canceled orders awaiting refunds remain in Active Orders with a 'Refund Pending' note."
+
+  - title: "User Profile Management"
+    steps:
+      - "User can edit personal details: name, mobile, profile picture, etc."
+      - "Default delivery location can be changed or new addresses added."
+      - "Change Password function (old/new/confirm)."
+      - "Theme toggles or other app preferences can be set."
+
+  # ----------------------
+  # 2. VENDOR WORKFLOWS
+  # ----------------------
+  - title: "Vendor Onboarding (Sign Up / Sign In)"
+    steps:
+      - "Vendor registers with business info (vendor name, email, contact, possibly location)."
+      - "Potential admin approval step, or direct sign up if auto-approve is allowed."
+      - "Sign In flow is similar to user sign in but hits vendor-specific endpoints."
+
+  - title: "Vendor Dashboard"
+    steps:
+      - "Shows the count of active/live orders at a glance."
+      - "Toggle for accepting orders (Open/Closed)."
+      - "List of served locations (e.g., different hostels or areas)."
+
+  - title: "Menu Management"
+    steps:
+      - "Add new items with name, price, availability times, capacity (optional)."
+      - "Edit or remove items, or mark them as 'sold out'."
+      - "Set daily order window (e.g., 8am-11am)."
+      - "Capacity-based closure if certain item counts are reached."
+
+  - title: "Order Management"
+    steps:
+      - "Vendor can view all current orders in an Active Orders view."
+      - "See item details, statuses, user info (if not anonymous)."
+      - "Approve or deny user-initiated modifications/cancellations based on policy."
+      - "Real-time analytics: total items, total revenue, etc."
+
+  - title: "Payment Management"
+    steps:
+      - "Track incoming payments. If in-app payments are integrated, auto-mark as paid on success."
+      - "If external UPI screenshots are still used, vendor can manually mark as paid."
+      - "Process refunds (manual or automated) if an order is canceled."
+      - "Payment reminders for unpaid orders can be triggered or scheduled."
+
+  - title: "Delivery Agent Interface"
+    steps:
+      - "Restricted role with access only to the Delivery dashboard."
+      - "Lists assigned orders for delivery with relevant details."
+      - "Agent marks each delivery as completed once items are handed over."
+
+  - title: "Team Management (Role-Based Access)"
+    steps:
+      - "Owner/Manager can add staff or delivery agents with specific privileges."
+      - "Staff can manage menu updates or orders, but not financials."
+      - "Delivery agents have minimal access to the system (delivery-lists only)."
+
+  # ---------------------------------
+  # 3. ADMIN FLOW (IF APPLICABLE)
+  # ---------------------------------
+  - title: "Admin Console"
+    steps:
+      - "Overview of all vendors, users, system analytics."
+      - "Approve or verify new vendors, block/unblock users."
+      - "Platform-wide metrics like total orders, revenue, user retention."
+
+backendConsiderations:
+  databaseSchema:
+    description: >
+      High-level overview of collections and their relationships.
+    collections:
+      - name: "User"
+        fields: ["name", "email", "passwordHash", "mobile", "defaultLocation", "notifications[]"]
+      - name: "Vendor"
+        fields: ["vendorName", "email", "businessInfo", "locationsServed[]", "menu[]", "orders[]", "roleBasedStaff[]"]
+      - name: "Order"
+        fields: ["userId", "vendorId", "items[]", "status", "paymentStatus", "deliveryLocation", "timestamps"]
+      - name: "Notifications"
+        fields: ["userId/vendorId", "message", "readStatus", "timestamp"]
+
+  apiEndpoints:
+    description: "High-level definition of REST endpoints."
+    list:
+      - "POST /api/auth/register"
+      - "POST /api/auth/login"
+      - "GET /api/users/me"
+      - "PATCH /api/users/profile"
+      - "PATCH /api/users/password"
+      - "POST /api/vendors/register"
+      - "POST /api/vendors/login"
+      - "GET /api/menu?vendorId="
+      - "POST /api/menu"
+      - "PATCH /api/menu/:itemId"
+      - "POST /api/orders/create"
+      - "GET /api/orders"
+      - "PATCH /api/orders/:orderId"
+      - "GET /api/vendors/orders"
+      - "PATCH /api/vendors/orders/:orderId"
+      - "POST /api/payments/checkout"
+      - "GET /api/vendors/payments"
+      - "GET /api/notifications"
+      - "POST /api/notifications/mark-read"
+      - "GET /api/delivery/orders"
+      - "PATCH /api/delivery/orders/:orderId"
+
+  notificationSystem:
+    description: >
+      Outlines how notifications get triggered for users and vendors 
+      (e.g., vendor opens/closes menu, payment reminders, order status changes).
+    steps:
+      - "Use event-driven triggers on vendor open/close or new order placement."
+      - "Store notifications in DB and deliver via push tokens."
+
+  paymentFlow:
+    description: >
+      Includes in-app UPI or external flows with possible refund triggers and 
+      real-time status updates.
+    steps:
+      - "Integrate with a payment gateway if possible."
+      - "On success, update order status to Paid. On failure, show relevant error."
+      - "Refund logic triggers on vendor-approved cancellation."
+
+applicationSettings:
+  permissions:
+    - name: "Push Notifications"
+      required: true
+      usage: "To alert users about order updates and vendor changes."
+    - name: "Location (Optional)"
+      usage: "User picks from preset campus locations, or optionally uses geolocation if needed."
+    - name: "Camera/Photos (Optional)"
+      usage: "Upload a profile pic or vendor item image."
+
+errorHandling:
+  guidelines:
+    - "Validate input on frontend (email format, mandatory fields)."
+    - "Use try/catch blocks on backend routes, return standardized JSON error responses."
+    - "Handle offline usage with simple caching or fallback UI."
+
+futureEnhancements:
+  - "Marketing & Insight Tools (coupons, loyalty programs)."
+  - "Real-Time Delivery Tracking with GPS."
+  - "Advanced analytics for vendors (trend analysis, user segmentation)."
+  - "Multi-currency support or cross-platform expansions."
+
+notes:
+  - "This cursorrule file does not contain direct code. It serves as an instruction set for code generation."
+  - "Use each of the flows, endpoints, and data schema descriptions to systematically build frontend components, backend controllers, routes, and database models."
+  - "Ensure proper role-based access controls for user, vendor, admin, and delivery agent."
+
+# ------------------------------------------------------------------------------
+# End of meshi-app.cursorrule
+# ------------------------------------------------------------------------------
