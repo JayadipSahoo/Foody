@@ -16,11 +16,6 @@ const menuItemSchema = new mongoose.Schema(
             required: [true, "Price is required"],
             min: [0, "Price cannot be negative"],
         },
-        categoryId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Category",
-            required: [true, "Category is required"],
-        },
         vendorId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Vendor",
@@ -42,17 +37,11 @@ const menuItemSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
-        customization: [
-            {
-                name: String,
-                options: [
-                    {
-                        name: String,
-                        price: Number,
-                    },
-                ],
-            },
-        ],
+        mealType: {
+            type: String,
+            enum: ["breakfast", "lunch", "dinner"],
+            default: "lunch",
+        },
     },
     {
         timestamps: true,
@@ -60,8 +49,9 @@ const menuItemSchema = new mongoose.Schema(
 );
 
 // Add indexes for better query performance
-menuItemSchema.index({ vendorId: 1, categoryId: 1 });
+menuItemSchema.index({ vendorId: 1 });
 menuItemSchema.index({ name: "text", description: "text" });
+menuItemSchema.index({ mealType: 1 });
 
 const MenuItem = mongoose.model("MenuItem", menuItemSchema);
 

@@ -15,15 +15,10 @@ exports.getMenuItems = async (req, res) => {
         }
 
         const vendorId = req.user._id;
-        const { category, search, isAvailable, isVeg, featured } = req.query;
+        const { search, isAvailable, isVeg, featured } = req.query;
 
         // Build filter object
         const filter = { vendorId };
-
-        // Add filters based on query parameters
-        if (category && mongoose.Types.ObjectId.isValid(category)) {
-            filter.categoryId = category;
-        }
 
         if (isAvailable !== undefined) {
             filter.isAvailable = isAvailable === "true";
@@ -47,7 +42,6 @@ exports.getMenuItems = async (req, res) => {
 
         // Get menu items
         const menuItems = await MenuItem.find(filter)
-            .populate("categoryId", "name")
             .sort({ createdAt: -1 });
 
         res.status(200).json(menuItems);
@@ -70,7 +64,7 @@ exports.getMenuItem = async (req, res) => {
         const menuItem = await MenuItem.findOne({
             _id: req.params.id,
             vendorId: req.user._id,
-        }).populate("categoryId", "name");
+        });
 
         if (!menuItem) {
             return res.status(404).json({ message: "Menu item not found" });
@@ -95,27 +89,14 @@ exports.createMenuItem = async (req, res) => {
 
         const vendorId = req.user._id;
 
-        // Check if category exists and belongs to the vendor
-        const category = await Category.findOne({
-            _id: req.body.categoryId,
-            vendorId,
-        });
-
-        if (!category) {
-            return res.status(400).json({ message: "Invalid category" });
-        }
-
-        // Create menu item
+        // Create menu item without category validation
         const menuItem = new MenuItem({
             ...req.body,
             vendorId,
         });
 
         const createdItem = await menuItem.save();
-
-        // Populate category details for response
-        await createdItem.populate("categoryId", "name");
-
+        
         res.status(201).json(createdItem);
     } catch (error) {
         console.error("Error in createMenuItem:", error);
@@ -144,27 +125,12 @@ exports.updateMenuItem = async (req, res) => {
             return res.status(404).json({ message: "Menu item not found" });
         }
 
-        // If categoryId is being updated, verify it exists and belongs to the vendor
-        if (
-            req.body.categoryId &&
-            req.body.categoryId !== menuItem.categoryId.toString()
-        ) {
-            const category = await Category.findOne({
-                _id: req.body.categoryId,
-                vendorId,
-            });
-
-            if (!category) {
-                return res.status(400).json({ message: "Invalid category" });
-            }
-        }
-
-        // Update menu item
+        // Update menu item - remove category validation
         menuItem = await MenuItem.findByIdAndUpdate(
             id,
             { ...req.body },
             { new: true, runValidators: true }
-        ).populate("categoryId", "name");
+        );
 
         res.status(200).json(menuItem);
     } catch (error) {
@@ -207,25 +173,29 @@ exports.deleteMenuItem = async (req, res) => {
 // @access  Private (Vendor)
 exports.toggleItemAvailability = async (req, res) => {
     try {
-        const { isAvailable } = req.body;
-
-        if (isAvailable === undefined) {
-            return res
-                .status(400)
-                .json({ message: "isAvailable field is required" });
-        }
-
-        const menuItem = await MenuItem.findOneAndUpdate(
-            { _id: req.params.id, vendorId: req.user._id },
-            { isAvailable },
-            { new: true }
-        );
+        // First find the current menu item to get its availability status
+        const menuItem = await MenuItem.findOne({
+            _id: req.params.id, 
+            vendorId: req.user._id
+        });
 
         if (!menuItem) {
             return res.status(404).json({ message: "Menu item not found" });
         }
 
-        res.status(200).json(menuItem);
+        // Use the provided value or toggle the current value
+        const isAvailable = req.body.isAvailable !== undefined 
+            ? req.body.isAvailable 
+            : !menuItem.isAvailable;
+
+        // Update the menu item
+        const updatedMenuItem = await MenuItem.findOneAndUpdate(
+            { _id: req.params.id, vendorId: req.user._id },
+            { isAvailable },
+            { new: true }
+        );
+
+        res.status(200).json(updatedMenuItem);
     } catch (error) {
         console.error("Error in toggleItemAvailability:", error);
         res.status(500).json({ message: "Server error" });
@@ -398,5 +368,56 @@ exports.deleteCategory = async (req, res) => {
     } catch (error) {
         console.error("Error in deleteCategory:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Get all menu items for a specific vendor (customer view)
+// @route   GET /api/menu/vendor/:vendorId
+// @access  Public
+exports.getVendorMenu = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        
+        if (!vendorId || !mongoose.Types.ObjectId.isValid(vendorId)) {
+            return res.status(400).json({ message: "Invalid vendor ID" });
+        }
+
+        const { mealType, search, isAvailable, isVeg, featured } = req.query;
+
+        // Build filter object
+        const filter = { vendorId };
+
+        // Add filters based on query parameters
+        if (mealType && ['breakfast', 'lunch', 'dinner'].includes(mealType.toLowerCase())) {
+            filter.mealType = mealType.toLowerCase();
+        }
+
+        // For public access, only show available items by default
+        filter.isAvailable = isAvailable === "false" ? false : true;
+
+        if (isVeg !== undefined) {
+            filter.isVeg = isVeg === "true";
+        }
+
+        if (featured !== undefined) {
+            filter.isFeatured = featured === "true";
+        }
+
+        // Add search filter if provided
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { description: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        // Get menu items (without trying to populate categoryId)
+        const menuItems = await MenuItem.find(filter)
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(menuItems);
+    } catch (error) {
+        console.error("Error in getVendorMenu:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };

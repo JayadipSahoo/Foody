@@ -11,23 +11,26 @@ const {
     createCategory,
     updateCategory,
     deleteCategory,
+    getVendorMenu,
 } = require("../controllers/menuController");
-const { protect, authorize } = require("../middleware/authMiddleware");
+const { protect, isVendor } = require("../middleware/authMiddleware");
 
-// Apply protection to all routes - only authenticated users can access
+// Public route for customers to view vendor menus
+router.get("/vendor/:vendorId", getVendorMenu);
+
+// Apply protect middleware to all routes
 router.use(protect);
-router.use(authorize("vendor"));
 
-// Menu item routes
-router.route("/").get(getMenuItems).post(createMenuItem);
+// Menu item routes - add isVendor middleware for vendor-only actions
+router.route("/").get(getMenuItems).post(isVendor, createMenuItem);
 
 router
     .route("/:id")
     .get(getMenuItem)
-    .put(updateMenuItem)
-    .delete(deleteMenuItem);
+    .put(isVendor, updateMenuItem)
+    .delete(isVendor, deleteMenuItem);
 
-router.patch("/:id/availability", toggleItemAvailability);
+router.patch("/:id/availability", isVendor, toggleItemAvailability);
 
 // Category routes
 router.route("/categories").get(getCategories).post(createCategory);

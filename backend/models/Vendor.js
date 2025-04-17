@@ -33,6 +33,11 @@ const vendorSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        role: {
+            type: String,
+            default: 'vendor',
+            required: true
+        },
         locationsServed: [
             {
                 type: String,
