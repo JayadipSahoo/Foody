@@ -8,6 +8,9 @@ const { errorHandler } = require("./middleware/authMiddleware");
 // Load environment variables
 dotenv.config();
 
+// Temporary -- for dev environment
+const ip = '192.168.1.40';
+
 // Connect to MongoDB
 connectDB();
 
@@ -20,7 +23,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Configure CORS
 app.use(cors({
-    origin: ['http://localhost:19006', 'http://localhost:3000', 'http://192.168.29.159:19006', 'exp://192.168.29.159:19000', 'http://localhost:19000'],
+    origin: ['http://localhost:19006', 'http://localhost:3000', `http://${ip}:19006`, `exp://${ip}:19000`, 'http://localhost:19000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
 }));
@@ -98,6 +101,6 @@ app.listen(PORT, () => {
         `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
     );
     console.log(
-        `API accessible at http://192.168.0.111:${PORT}${API_BASE_URL}`
+        `API accessible at http://${ip}:${PORT}${API_BASE_URL}`
     );
 });

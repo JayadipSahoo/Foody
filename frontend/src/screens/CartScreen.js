@@ -204,7 +204,7 @@ const CartScreen = () => {
                             
                             <TouchableOpacity 
                                 style={styles.checkoutButton}
-                                onPress={handleCheckout}
+                                onPress={() => navigation.navigate('Checkout')}
                             >
                                 <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
                                 <Ionicons name="arrow-forward" size={20} color="#fff" />

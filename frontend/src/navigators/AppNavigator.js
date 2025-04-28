@@ -6,6 +6,7 @@ import { StatusBar, View, ActivityIndicator, StyleSheet } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import useAuthStore from "../store/authStore";
+import CheckoutScreen from '../screens/CheckoutScreen';
 
 // Define our theme color
 const THEME_COLOR = '#FDA535'; // Updated theme color
@@ -208,6 +209,11 @@ const CustomerStack = () => {
             <Stack.Screen
                 name="RestaurantDetails"
                 component={RestaurantDetailsScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="Checkout"
+                component={CheckoutScreen}
                 options={{ headerShown: false }}
             />
         </Stack.Navigator>

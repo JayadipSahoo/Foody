@@ -1,4 +1,8 @@
+// new code to be built
+
+
 import React, { useState, useEffect } from 'react';
+import { useCart } from '../context/CartContext';
 import {
     View,
     Text,
@@ -11,7 +15,8 @@ import {
     Modal,
     StatusBar,
     Image,
-    Alert
+    Alert,
+    Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -84,7 +89,8 @@ const RestaurantDetailsScreen = () => {
     const [scheduleLoading, setScheduleLoading] = useState(false);
     const [isRestaurantOpen, setIsRestaurantOpen] = useState(false);
     const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
-    const [showCart, setShowCart] = useState(false);
+    // Animation value for the cart tab
+    const [cartTabAnimation] = useState(new Animated.Value(0));
 
     // Helper function to get current day of week (0-6, Sunday-Saturday)
     const getCurrentDayOfWeek = () => {
@@ -134,6 +140,25 @@ const RestaurantDetailsScreen = () => {
             fetchVendorStatus();
         }
     }, [restaurant]);
+
+    // Animation for cart tab
+    useEffect(() => {
+        if (cartItems.length > 0) {
+            // Show the tab
+            Animated.spring(cartTabAnimation, {
+                toValue: 1,
+                friction: 6,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            // Hide the tab
+            Animated.spring(cartTabAnimation, {
+                toValue: 0,
+                friction: 6,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [cartItems]);
 
     // Fetch vendor status
     const fetchVendorStatus = async () => {
@@ -447,13 +472,16 @@ const RestaurantDetailsScreen = () => {
             // Add new item
             setCartItems([...cartItems, {...item, quantity: 1}]);
         }
-        
-        Alert.alert('Added to Cart', `${item.name} has been added to your cart.`);
     };
     
     // Calculate total cart price
     const getCartTotal = () => {
         return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    };
+    
+    // Calculate total cart items
+    const getTotalCartItems = () => {
+        return cartItems.reduce((total, item) => total + item.quantity, 0);
     };
     
     // Remove item from cart
@@ -488,14 +516,24 @@ const RestaurantDetailsScreen = () => {
         });
     };
 
+    // Format cart item count text
+    const formatCartItemsText = () => {
+        const count = getTotalCartItems();
+        return count === 1 ? '1 item added' : `${count} items added`;
+    };
+
     // Render a single menu item
     const renderMenuItem = ({ item }) => {
         if (!item) return null;
         
+        // Check if item is in cart
+        const cartItem = cartItems.find(ci => ci._id === item._id);
+        const isInCart = !!cartItem;
+        
         return (
             <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => addToCart(item)}
+                onPress={() => !isInCart && item.isAvailable && addToCart(item)}
                 disabled={!item.isAvailable}
             >
                 <View style={styles.menuItemDetails}>
@@ -527,12 +565,30 @@ const RestaurantDetailsScreen = () => {
                         )}
                     </View>
                     {item.isAvailable && (
-                        <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={() => addToCart(item)}
-                        >
-                            <Text style={styles.addButtonText}>ADD</Text>
-                        </TouchableOpacity>
+                        isInCart ? (
+                            <View style={styles.quantityControl}>
+                                <TouchableOpacity 
+                                    style={styles.quantityButton}
+                                    onPress={() => updateQuantity(item._id, cartItem.quantity - 1)}
+                                >
+                                    <Text style={styles.quantityButtonText}>-</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.quantityText}>{cartItem.quantity}</Text>
+                                <TouchableOpacity 
+                                    style={styles.quantityButton}
+                                    onPress={() => updateQuantity(item._id, cartItem.quantity + 1)}
+                                >
+                                    <Text style={styles.quantityButtonText}>+</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.addButton}
+                                onPress={() => addToCart(item)}
+                            >
+                                <Text style={styles.addButtonText}>ADD</Text>
+                            </TouchableOpacity>
+                        )
                     )}
                 </View>
             </TouchableOpacity>
@@ -579,16 +635,6 @@ const RestaurantDetailsScreen = () => {
             {/* Menu Title */}
             <View style={styles.menuTitleContainer}>
                 <Text style={styles.menuTitle}>Menu</Text>
-                {cartItems.length > 0 && (
-                    <TouchableOpacity 
-                        style={styles.viewCartButton}
-                        onPress={() => setShowCart(true)}
-                    >
-                        <Text style={styles.viewCartText}>
-                            View Cart ({cartItems.reduce((total, item) => total + item.quantity, 0)})
-                        </Text>
-                    </TouchableOpacity>
-                )}
             </View>
             
             {/* Meal type pills */}
@@ -700,74 +746,6 @@ const RestaurantDetailsScreen = () => {
         );
     };
 
-    // Render Cart Modal
-    const renderCartModal = () => (
-        <Modal
-            visible={showCart}
-            transparent={true}
-            animationType="slide"
-            onRequestClose={() => setShowCart(false)}>
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Your Cart</Text>
-                        <TouchableOpacity onPress={() => setShowCart(false)}>
-                            <MaterialIcons name="close" size={24} color="#000" />
-                        </TouchableOpacity>
-                    </View>
-                    
-                    {cartItems.length === 0 ? (
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>Your cart is empty</Text>
-                        </View>
-                    ) : (
-                        <>
-                            <FlatList
-                                data={cartItems}
-                                keyExtractor={(item) => item._id}
-                                renderItem={({ item }) => (
-                                    <View style={styles.cartItem}>
-                                        <View style={styles.cartItemInfo}>
-                                            <Text style={styles.cartItemName}>{item.name}</Text>
-                                            <Text style={styles.cartItemPrice}>₹{item.price}</Text>
-                                        </View>
-                                        <View style={styles.cartItemQuantity}>
-                                            <TouchableOpacity
-                                                style={styles.quantityButton}
-                                                onPress={() => updateQuantity(item._id, item.quantity - 1)}>
-                                                <Text style={styles.quantityButtonText}>-</Text>
-                                            </TouchableOpacity>
-                                            <Text style={styles.quantityText}>{item.quantity}</Text>
-                                            <TouchableOpacity
-                                                style={styles.quantityButton}
-                                                onPress={() => updateQuantity(item._id, item.quantity + 1)}>
-                                                <Text style={styles.quantityButtonText}>+</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                )}
-                            />
-                            
-                            <View style={styles.cartTotal}>
-                                <Text style={styles.cartTotalText}>Total:</Text>
-                                <Text style={styles.cartTotalAmount}>₹{getCartTotal()}</Text>
-                            </View>
-                            
-                            <TouchableOpacity
-                                style={styles.checkoutButton}
-                                onPress={() => {
-                                    setShowCart(false);
-                                    proceedToCheckout();
-                                }}>
-                                <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
-                </View>
-            </View>
-        </Modal>
-    );
-
     // Format time for schedule display (e.g., "9:00 AM")
     const formatTime = (timeString) => {
         if (!timeString) return '';
@@ -785,6 +763,50 @@ const RestaurantDetailsScreen = () => {
         }
     };
 
+    // Render the bottom cart tab
+    const renderCartTab = () => {
+        const total = getCartTotal();
+        const itemCount = getTotalCartItems();
+        
+        // Don't render if cart is empty
+        if (itemCount === 0) return null;
+        
+        // Calculate transform for animation (slide up from bottom)
+        const translateY = cartTabAnimation.interpolate({
+            inputRange: [0, 1],
+            outputRange: [100, 0]
+        });
+        
+        return (
+            <Animated.View 
+                style={[
+                    styles.cartTabContainer,
+                    { transform: [{ translateY }] }
+                ]}
+            >
+                <TouchableOpacity
+                    style={styles.cartTab}
+                    onPress={proceedToCheckout}
+                    activeOpacity={0.8}
+                >
+                    <View style={styles.cartTabContent}>
+                        <View style={styles.cartTabInfo}>
+                            <Text style={styles.cartTabItemCount}>
+                                {formatCartItemsText()}
+                            </Text>
+                            <Text style={styles.cartTabTotal}>
+                                worth ₹{total}
+                            </Text>
+                        </View>
+                        <View style={styles.cartTabArrow}>
+                            <MaterialIcons name="arrow-forward" size={24} color="#FFF" />
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Animated.View>
+        );
+    };
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
@@ -797,21 +819,10 @@ const RestaurantDetailsScreen = () => {
                 <Text style={styles.headerTitle}>
                     {restaurant?.name || 'Restaurant Details'}
                 </Text>
-                <View style={styles.headerRight}>
-                    {cartItems.length > 0 && (
-                        <TouchableOpacity onPress={() => setShowCart(true)}>
-                            <View style={styles.cartIconContainer}>
-                                <MaterialIcons name="shopping-cart" size={24} color="#000" />
-                                <View style={styles.cartBadge}>
-                                    <Text style={styles.cartBadgeText}>{cartItems.reduce((total, item) => total + item.quantity, 0)}</Text>
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                <View style={styles.headerRight} />
             </View>
 
-            {/* Always show menu items, even while loading */}
+            {/* Menu Items List */}
             <FlatList
                 data={selectedCategory 
                     ? menuItems.filter(item => item.mealType && item.mealType.toLowerCase() === selectedCategory.toLowerCase())
@@ -821,13 +832,15 @@ const RestaurantDetailsScreen = () => {
                 ListHeaderComponent={renderHeader}
                 ListEmptyComponent={renderEmptyMenu}
                 contentContainerStyle={styles.menuList}
+                // Add extra padding at the bottom to account for the cart tab
+                contentInset={{ bottom: cartItems.length > 0 ? 70 : 0 }}
             />
 
             {/* Schedule Modal */}
             {renderScheduleModal()}
             
-            {/* Cart Modal */}
-            {renderCartModal()}
+            {/* Bottom Cart Tab */}
+            {renderCartTab()}
         </SafeAreaView>
     );
 };
@@ -864,25 +877,6 @@ const styles = StyleSheet.create({
         width: 40,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    cartIconContainer: {
-        position: 'relative',
-    },
-    cartBadge: {
-        position: 'absolute',
-        right: -8,
-        top: -8,
-        backgroundColor: THEME_COLOR,
-        borderRadius: 10,
-        width: 18,
-        height: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cartBadgeText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: 'bold',
     },
     banner: {
         width: '100%',
@@ -957,7 +951,6 @@ const styles = StyleSheet.create({
     },
     categoriesContainer: {
         marginVertical: 16,
-        paddingHorizontal: 16,
     },
     categoryButton: {
         paddingHorizontal: 16,
@@ -989,19 +982,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
     },
-    viewCartButton: {
-        backgroundColor: THEME_COLOR,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    viewCartText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
     menuList: {
-        paddingBottom: 16,
+        paddingBottom: 80, // Extra padding to account for the cart tab
     },
     menuItem: {
         flexDirection: 'row',
@@ -1168,78 +1150,77 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: 'red',
     },
-    cartItem: {
+    // Cart tab styles
+    cartTabContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 16,
+        backgroundColor: 'transparent',
+    },
+    cartTab: {
+        backgroundColor: '#FF9F6A', // Using the theme color, bright orange for excitement
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    cartTabContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
     },
-    cartItemInfo: {
+    cartTabInfo: {
         flex: 1,
     },
-    cartItemName: {
+    cartTabItemCount: {
+        color: 'white',
         fontSize: 16,
-        fontWeight: '500',
-        color: '#333',
-    },
-    cartItemPrice: {
-        fontSize: 16,
-        color: THEME_COLOR,
         fontWeight: 'bold',
     },
-    cartItemQuantity: {
+    cartTabTotal: {
+        color: 'white',
+        fontSize: 14,
+    },
+    cartTabArrow: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    quantityControl: {
         flexDirection: 'row',
         alignItems: 'center',
+        alignSelf: 'flex-end',
     },
     quantityButton: {
-        backgroundColor: '#f0f0f0',
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        alignItems: 'center',
+        backgroundColor: THEME_COLOR,
+        width: 30,
+        height: 30,
+        borderRadius: 15,
         justifyContent: 'center',
+        alignItems: 'center',
     },
     quantityButtonText: {
+        color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
     },
     quantityText: {
-        fontSize: 16,
-        fontWeight: 'bold',
         marginHorizontal: 10,
-    },
-    cartTotal: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#eee',
-    },
-    cartTotalText: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-    cartTotalAmount: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: THEME_COLOR,
-    },
-    checkoutButton: {
-        backgroundColor: THEME_COLOR,
-        marginHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    checkoutButtonText: {
-        color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
     },
 });
 
-export default RestaurantDetailsScreen; 
+export default RestaurantDetailsScreen;

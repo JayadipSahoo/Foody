@@ -1,5 +1,5 @@
 // API Configuration
-export const API_URL = "http://192.168.29.159:5000/api";
+export const API_URL = "http://192.168.1.40:5000/api";
 
 // Debug flags to control logging
 export const DEBUG = {
