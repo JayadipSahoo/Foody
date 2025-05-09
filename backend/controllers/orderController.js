@@ -1,4 +1,7 @@
 const Order = require("../models/Order");
+const Menu = require("../models/MenuItem");
+const hashItemSnapshot = require("../utils/hashItemSnapshot");
+const { mockProcessPayment } = require("../services/paymentService");
 
 // @desc    Get all orders for a customer
 // @route   GET /api/orders
@@ -43,27 +46,51 @@ exports.getOrderById = async (req, res) => {
 // @access  Private
 exports.createOrder = async (req, res) => {
     try {
-        const {
-            items,
-            vendorId,
-            totalAmount,
-            deliveryAddress,
-            paymentMethod,
-            specialInstructions
-        } = req.body;
-
+        const { items, vendorId, deliveryAddress, paymentMethod, specialInstructions } = req.body;
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: "No items in order" });
+        }
+        let totalAmount = 0;
+        const orderItems = [];
+        for (const cartItem of items) {
+            const { itemId, quantity, versionHash } = cartItem;
+            if (!itemId || typeof quantity !== 'number' || !versionHash) {
+                return res.status(400).json({ message: "Invalid item format" });
+            }
+            const menuItem = await Menu.findById(itemId);
+            if (!menuItem || !menuItem.isAvailable) {
+                return res.status(409).json({ message: "Menu has been updated. Please refresh your cart." });
+            }
+            const currentHash = hashItemSnapshot(menuItem);
+            if (currentHash !== versionHash) {
+                return res.status(409).json({ message: "Menu has been updated. Please refresh your cart." });
+            }
+            orderItems.push({
+                name: menuItem.name,
+                price: menuItem.price,
+                quantity,
+                isVeg: menuItem.isVeg
+            });
+            totalAmount += menuItem.price * quantity;
+        }
+        // Mock payment
+        const paymentInfo = await mockProcessPayment({ amount: totalAmount, method: paymentMethod });
+        if (!paymentInfo || !paymentInfo.success) {
+            return res.status(402).json({ message: "Payment failed", paymentInfo });
+        }
+        // Create order
         const order = await Order.create({
             customerId: req.user._id,
             vendorId,
-            items,
+            items: orderItems,
             totalAmount,
             deliveryAddress,
             paymentMethod,
             specialInstructions,
-            status: "pending"
+            status: "pending",
+            paymentStatus: "completed"
         });
-
-        res.status(201).json(order);
+        res.status(201).json({ order, paymentInfo });
     } catch (error) {
         console.error("Error in createOrder:", error);
         res.status(500).json({ message: "Server error" });

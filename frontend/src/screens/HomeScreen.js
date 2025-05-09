@@ -304,7 +304,7 @@ const HomeScreen = () => {
 
             <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>
-                    {selectedLocation ? `Restaurants in ${selectedLocation}` : "Restaurants Available Near You"}
+                    {selectedLocation ? `Restaurants delivering to ${selectedLocation}` : "Restaurants Available Near You"}
                 </Text>
                 <TouchableOpacity>
                     <Text style={styles.seeAllText}>See All</Text>

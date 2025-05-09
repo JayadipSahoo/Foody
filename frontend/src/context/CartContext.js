@@ -71,10 +71,6 @@ export function CartProvider({ children }) {
                 }];
             }
         });
-         // Only show simple alert if not clearing cart
-         if (cartItems.length === 0 || cartRestaurant?.id === restaurantId) {
-              Alert.alert('Item Added', `${item.name} added to cart.`);
-         }
     };
 
     // Renamed from removeFromCart to decreaseQuantityOrRemove

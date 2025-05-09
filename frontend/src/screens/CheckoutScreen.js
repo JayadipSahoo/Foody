@@ -6,6 +6,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../context/CartContext';
 import useUserStore from '../store/userStore';
+import api from "../services/apiService";
+import hashItemSnapshot from '../utils/hashItemSnapshot';
 
 const paymentOptions = [
   { key: 'upi', label: 'UPI' },
@@ -64,37 +66,70 @@ const CheckoutScreen = () => {
     console.log("Cart items in checkout:", cartItems);
   }, [cartItems]);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (cartItems.length === 0) {
       Alert.alert('Empty Cart', 'Your cart is empty. Please add items before checking out.');
       return;
     }
-    
-    // Create order data to send to backend
-    const orderData = {
-      items: cartItems,
-      restaurantName,
-      totalAmount: getCartTotal(),
-      deliveryAddress: lastOrderedLocation,
-      paymentMethod,
-      specialInstructions: instructions.trim(),
-      orderTime: new Date().toISOString(),
-    };
-    
-    console.log("Placing order:", orderData);
-    
-    // In a real app, send this data to the backend
-    // apiService.placeOrder(orderData).then(...)
-    
-    Alert.alert('Order Placed Successfully', 'Your food is being prepared!', [
-      {
-        text: 'OK',
-        onPress: () => {
-          clearCart();
-          navigation.navigate('CustomerTabs', { screen: 'Home' });
-        },
-      },
-    ]);
+  
+    try {
+      // Construct item payload with ID, quantity, and version hash
+      const items = cartItems.map(item => {
+        const itemSnapshot = {
+          name: item.name,
+          price: item.price,
+          isAvailable: item.isAvailable,
+          isVeg: item.isVeg
+        };
+        const hash = hashItemSnapshot(itemSnapshot);
+        return {
+          itemId: item._id,
+          quantity: item.quantity,
+          versionHash: hash
+        };
+      });
+  
+      const orderPayload = {
+        items,
+        vendorId: cartRestaurant?.id || cartRestaurant?._id,
+        deliveryAddress: lastOrderedLocation,
+        paymentMethod,
+        specialInstructions: instructions.trim()
+      };
+
+      // Order Payload for Debugging
+      console.log("Placing Order : ", orderPayload);
+  
+      const response = await api.post("/orders", orderPayload);
+  
+      Alert.alert('Order Placed Successfully', 'Your food is being prepared!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            clearCart();
+            navigation.navigate('CustomerTabs', { screen: 'Home' });
+          }
+        }
+      ]);
+    } catch (error) {
+      if (error.response?.status === 409) {
+        Alert.alert(
+          'Menu Updated',
+          'Some items have changed since you added them. Please review your cart again.',
+          [
+            {
+              text: 'Go Back',
+              onPress: () => {
+                clearCart();
+                navigation.navigate('RestaurantDetails', { restaurant: cartRestaurant || route.params?.restaurant });
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Order Failed', 'Something went wrong. Please try again.');
+      }
+    }
   };
 
   // Handle navigation back to restaurant

@@ -3,11 +3,13 @@ const mongoose = require("mongoose");
 const orderItemSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: [true, "Name is required"],
+        trim: true,
     },
     price: {
         type: Number,
-        required: true
+        required: [true, "Price is required"],
+        min: [0, "Price cannot be negative"],
     },
     quantity: {
         type: Number,
@@ -16,7 +18,7 @@ const orderItemSchema = new mongoose.Schema({
     },
     isVeg: {
         type: Boolean,
-        default: false
+        default: false,
     }
 });
 
@@ -77,4 +79,4 @@ orderSchema.index({ status: 1 });
 
 const Order = mongoose.model("Order", orderSchema);
 
-module.exports = Order; 
+module.exports = Order;

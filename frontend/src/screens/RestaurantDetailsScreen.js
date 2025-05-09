@@ -1,6 +1,3 @@
-// new code to be built
-
-
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import {
@@ -35,6 +32,7 @@ const THEME_COLOR = '#FF9F6A';
 const RestaurantDetailsScreen = () => {
     const route = useRoute();
     const navigation = useNavigation();
+    const { cartItems, cartRestaurant, addToCart, updateItemQuantity, getCartTotal, getItemCount } = useCart();
     
     // Log route params for debugging
     console.log('Route params:', route.params);
@@ -80,7 +78,6 @@ const RestaurantDetailsScreen = () => {
     }, [initialRestaurantData]);
 
     const [menuItems, setMenuItems] = useState([]);
-    const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -144,14 +141,12 @@ const RestaurantDetailsScreen = () => {
     // Animation for cart tab
     useEffect(() => {
         if (cartItems.length > 0) {
-            // Show the tab
             Animated.spring(cartTabAnimation, {
                 toValue: 1,
                 friction: 6,
                 useNativeDriver: true,
             }).start();
         } else {
-            // Hide the tab
             Animated.spring(cartTabAnimation, {
                 toValue: 0,
                 friction: 6,
@@ -450,90 +445,15 @@ const RestaurantDetailsScreen = () => {
         return [...new Set(menuItems.map(item => item.category))].filter(Boolean);
     };
     
-    // Add item to cart
-    const addToCart = (item) => {
-        // Only check if accepting orders, ignore restaurant open/closed status
-        if (!isAcceptingOrders) {
-            Alert.alert('Not Accepting Orders', 'This restaurant is not accepting orders at the moment.');
-            return;
-        }
-        
-        // Check if item already in cart
-        const existingItem = cartItems.find(cartItem => cartItem._id === item._id);
-        
-        if (existingItem) {
-            // Increase quantity
-            setCartItems(cartItems.map(cartItem => 
-                cartItem._id === item._id 
-                    ? {...cartItem, quantity: cartItem.quantity + 1} 
-                    : cartItem
-            ));
-        } else {
-            // Add new item
-            setCartItems([...cartItems, {...item, quantity: 1}]);
-        }
-    };
-    
-    // Calculate total cart price
-    const getCartTotal = () => {
-        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    };
-    
-    // Calculate total cart items
-    const getTotalCartItems = () => {
-        return cartItems.reduce((total, item) => total + item.quantity, 0);
-    };
-    
-    // Remove item from cart
-    const removeFromCart = (itemId) => {
-        setCartItems(cartItems.filter(item => item._id !== itemId));
-    };
-    
-    // Update item quantity in cart
-    const updateQuantity = (itemId, newQuantity) => {
-        if (newQuantity === 0) {
-            removeFromCart(itemId);
-            return;
-        }
-        
-        setCartItems(cartItems.map(item => 
-            item._id === itemId ? {...item, quantity: newQuantity} : item
-        ));
-    };
-    
-    // Proceed to checkout
-    const proceedToCheckout = () => {
-        if (cartItems.length === 0) {
-            Alert.alert('Empty Cart', 'Please add items to your cart before checking out.');
-            return;
-        }
-        
-        // Navigate to checkout screen with cart items
-        navigation.navigate('Checkout', {
-            restaurant,
-            cartItems,
-            total: getCartTotal()
-        });
-    };
-
-    // Format cart item count text
-    const formatCartItemsText = () => {
-        const count = getTotalCartItems();
-        return count === 1 ? '1 item added' : `${count} items added`;
-    };
-
     // Render a single menu item
     const renderMenuItem = ({ item }) => {
         if (!item) return null;
-        
-        // Check if item is in cart
         const cartItem = cartItems.find(ci => ci._id === item._id);
         const isInCart = !!cartItem;
-        
         return (
             <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => !isInCart && item.isAvailable && addToCart(item)}
+                onPress={() => !isInCart && item.isAvailable && addToCart(item, restaurant?._id, restaurant?.name)}
                 disabled={!item.isAvailable}
             >
                 <View style={styles.menuItemDetails}>
@@ -569,14 +489,14 @@ const RestaurantDetailsScreen = () => {
                             <View style={styles.quantityControl}>
                                 <TouchableOpacity 
                                     style={styles.quantityButton}
-                                    onPress={() => updateQuantity(item._id, cartItem.quantity - 1)}
+                                    onPress={() => updateItemQuantity(item._id, cartItem.quantity - 1)}
                                 >
                                     <Text style={styles.quantityButtonText}>-</Text>
                                 </TouchableOpacity>
                                 <Text style={styles.quantityText}>{cartItem.quantity}</Text>
                                 <TouchableOpacity 
                                     style={styles.quantityButton}
-                                    onPress={() => updateQuantity(item._id, cartItem.quantity + 1)}
+                                    onPress={() => updateItemQuantity(item._id, cartItem.quantity + 1)}
                                 >
                                     <Text style={styles.quantityButtonText}>+</Text>
                                 </TouchableOpacity>
@@ -584,7 +504,7 @@ const RestaurantDetailsScreen = () => {
                         ) : (
                             <TouchableOpacity
                                 style={styles.addButton}
-                                onPress={() => addToCart(item)}
+                                onPress={() => addToCart(item, restaurant?._id, restaurant?.name)}
                             >
                                 <Text style={styles.addButtonText}>ADD</Text>
                             </TouchableOpacity>
@@ -766,17 +686,12 @@ const RestaurantDetailsScreen = () => {
     // Render the bottom cart tab
     const renderCartTab = () => {
         const total = getCartTotal();
-        const itemCount = getTotalCartItems();
-        
-        // Don't render if cart is empty
+        const itemCount = getItemCount();
         if (itemCount === 0) return null;
-        
-        // Calculate transform for animation (slide up from bottom)
         const translateY = cartTabAnimation.interpolate({
             inputRange: [0, 1],
             outputRange: [100, 0]
         });
-        
         return (
             <Animated.View 
                 style={[
@@ -786,13 +701,15 @@ const RestaurantDetailsScreen = () => {
             >
                 <TouchableOpacity
                     style={styles.cartTab}
-                    onPress={proceedToCheckout}
+                    onPress={() => {
+                        if (itemCount > 0) navigation.navigate('Checkout', { restaurant });
+                    }}
                     activeOpacity={0.8}
                 >
                     <View style={styles.cartTabContent}>
                         <View style={styles.cartTabInfo}>
                             <Text style={styles.cartTabItemCount}>
-                                {formatCartItemsText()}
+                                {itemCount === 1 ? '1 item added' : `${itemCount} items added`}
                             </Text>
                             <Text style={styles.cartTabTotal}>
                                 worth ₹{total}

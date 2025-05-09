@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL configuration
 export const getBaseUrl = () => {
-    return "http://192.168.1.40:5000/api";
+    return "http://192.168.1.21:5000/api";
 };
 
 // Debug flag for API requests - set to false for real API calls
@@ -328,6 +328,40 @@ api.interceptors.response.use(
     }
 );
 
+// Customer API service
+export const customerAPI = {
+    // Customer orders
+    getOrders: async () => {
+        try {
+            const response = await api.get('/orders');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching customer orders:', error);
+            throw error;
+        }
+    },
+
+    getOrderById: async (id) => {
+        try {
+            const response = await api.get(`/orders/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Error fetching order ${id}:`, error);
+            throw error;
+        }
+    },
+
+    createOrder: async (orderData) => {
+        try {
+            const response = await api.post('/orders', orderData);
+            return response.data;
+        } catch (error) {
+            console.error('Error creating order:', error);
+            throw error;
+        }
+    }
+};
+
 // Vendor API service
 export const vendorAPI = {
     // Vendor profile
@@ -396,6 +430,38 @@ export const vendorAPI = {
             console.error('Error updating vendor schedule:', error);
             // For now, return the input data to avoid breaking the UI
             return scheduleData;
+        }
+    },
+
+    // Vendor orders
+    getVendorOrders: async () => {
+        try {
+            // Get vendor ID from stored user data
+            const userData = await AsyncStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('No user data found');
+            }
+
+            const { _id: vendorId } = JSON.parse(userData);
+            if (!vendorId) {
+                throw new Error('No vendor ID found in user data');
+            }
+
+            const response = await api.get(`/orders/vendor/${vendorId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching vendor orders:', error);
+            throw error;
+        }
+    },
+
+    updateOrderStatus: async (orderId, status) => {
+        try {
+            const response = await api.put(`/orders/${orderId}/status`, { status });
+            return response.data;
+        } catch (error) {
+            console.error(`Error updating order ${orderId} status:`, error);
+            throw error;
         }
     },
     
