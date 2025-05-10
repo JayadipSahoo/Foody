@@ -15,7 +15,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // Define theme color
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const EditMenuItem = ({ route, navigation }) => {
     const { menuItem, onSave } = route.params || {};

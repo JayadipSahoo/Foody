@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define theme color
-const THEME_COLOR = '#FF9F6A'; // Coral/Orange accent color
+const THEME_COLOR = '#fda535'; // Coral/Orange accent color
 
 const NotificationsScreen = ({ navigation }) => {
     const {

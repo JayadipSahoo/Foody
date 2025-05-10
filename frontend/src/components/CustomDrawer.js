@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
         padding: 20,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
-        backgroundColor: '#FFA726',
+        backgroundColor: '#fda535',
     },
     profilePicture: {
         width: 80,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     },
     initials: {
         fontSize: 32,
-        color: '#FFA726',
+        color: '#fda535',
         fontWeight: 'bold',
     },
     emailText: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
         marginLeft: 16,
     },
     cartBadge: {
-        backgroundColor: '#FFA726',
+        backgroundColor: '#fda535',
         borderRadius: 10,
         minWidth: 20,
         height: 20,

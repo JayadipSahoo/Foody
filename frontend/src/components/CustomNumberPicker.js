@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const CustomNumberPicker = ({ initialValue = 0, minValue = 0, maxValue = 59, onChange }) => {
     const [value, setValue] = useState(initialValue);

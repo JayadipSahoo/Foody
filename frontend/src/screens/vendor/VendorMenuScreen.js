@@ -19,7 +19,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVendorStore } from '../../store/vendorStore';
 import { useFocusEffect } from '@react-navigation/native';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const VendorMenuScreen = ({ navigation }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -172,7 +172,7 @@ const VendorMenuScreen = ({ navigation }) => {
     // Only consider the store open if we have explicitly confirmed it's accepting orders
     const isStoreOpen = vendorData && vendorData.isAcceptingOrders === true;
 
-    // Show success banner when store is open
+    // Show success banner when store is open - keep it visible without timeout
     useEffect(() => {
         if (isStoreOpen && !isLoading) {
             setShowSuccessBanner(true);
@@ -184,18 +184,15 @@ const VendorMenuScreen = ({ navigation }) => {
                 useNativeDriver: true
             }).start();
             
-            // Hide banner after 3 seconds
-            const timer = setTimeout(() => {
-                Animated.timing(successOpacity, {
-                    toValue: 0,
-                    duration: 300,
-                    useNativeDriver: true
-                }).start(() => {
-                    setShowSuccessBanner(false);
-                });
-            }, 3000);
-            
-            return () => clearTimeout(timer);
+            // No longer automatically hiding the banner after timeout
+        } else {
+            // Hide banner when store is closed
+            setShowSuccessBanner(false);
+            Animated.timing(successOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true
+            }).start();
         }
     }, [isStoreOpen, isLoading, successOpacity]);
 
@@ -305,7 +302,7 @@ const VendorMenuScreen = ({ navigation }) => {
                     {!isStoreOpen && (
                         <View style={[
                             styles.statusBanner, 
-                            { backgroundColor: '#f44336' }
+                            { backgroundColor: '#fda535' }
                         ]}>
                             <MaterialCommunityIcons name="store-off" size={20} color="#fff" />
                             <Text style={styles.statusBannerText}>
@@ -579,7 +576,7 @@ const styles = StyleSheet.create({
     errorText: {
         marginBottom: 20,
         fontSize: 16,
-        color: '#F44336',
+        color: '#fda535',
         textAlign: 'center',
     },
     retryButton: {

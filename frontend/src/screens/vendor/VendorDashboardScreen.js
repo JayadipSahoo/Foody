@@ -12,7 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const DashboardCard = ({ title, icon, onPress }) => (
     <TouchableOpacity style={styles.card} onPress={onPress}>

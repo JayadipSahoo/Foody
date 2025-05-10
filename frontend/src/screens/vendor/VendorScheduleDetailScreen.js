@@ -13,7 +13,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVendorStore } from '../../store/vendorStore';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const DAYS_OF_WEEK = [
     { id: 0, name: 'Sunday' },

@@ -4,7 +4,7 @@ import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 const PrimaryButton = ({
     onPress,
     title,
-    backgroundColor = '#FFA726',
+    backgroundColor = '#fda535',
     textColor = '#FFFFFF',
     marginTop = 0,
 }) => {

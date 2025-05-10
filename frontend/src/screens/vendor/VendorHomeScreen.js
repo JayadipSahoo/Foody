@@ -235,7 +235,7 @@ const VendorHomeScreen = ({ navigation }) => {
 
     const QuickActionButton = ({ title, icon, onPress }) => (
         <TouchableOpacity style={styles.actionButton} onPress={onPress}>
-            <Ionicons name={icon} size={24} color="#FF6B6B" />
+            <Ionicons name={icon} size={24} color="#fda535" />
             <Text style={styles.actionButtonText}>{title}</Text>
         </TouchableOpacity>
     );
@@ -243,7 +243,7 @@ const VendorHomeScreen = ({ navigation }) => {
     if (loading && !refreshing) {
         return (
             <SafeAreaView style={[styles.container, styles.centerContent]}>
-                <ActivityIndicator size="large" color="#FF6B6B" />
+                <ActivityIndicator size="large" color="#fda535" />
             </SafeAreaView>
         );
     }
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#FF6B6B',
+        color: '#fda535',
         marginBottom: 4,
     },
     statLabel: {
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     retryButton: {
-        backgroundColor: '#FF6B6B',
+        backgroundColor: '#fda535',
         paddingHorizontal: 24,
         paddingVertical: 8,
         borderRadius: 8,
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     mockDataBanner: {
-        backgroundColor: '#FF6B6B',
+        backgroundColor: '#fda535',
         padding: 16,
         borderRadius: 12,
         marginBottom: 24,

@@ -27,7 +27,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // Instead, only use mock when API_URL is completely missing
 const USE_MOCK_DATA = !API_URL;
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const RestaurantDetailsScreen = () => {
     const route = useRoute();

@@ -18,7 +18,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVendorStore } from '../../store/vendorStore';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 const DAYS_OF_WEEK = [
     { id: 0, name: 'Sunday' },
@@ -390,7 +390,7 @@ const VendorMenuScheduleScreen = ({ route, navigation }) => {
                 style={styles.removeItemButton}
                 onPress={() => handleRemoveItem(index)}
       >
-                <MaterialCommunityIcons name="close" size={20} color="#F44336" />
+                <MaterialCommunityIcons name="close" size={20} color="#fda535" />
       </TouchableOpacity>
     </View>
     ), [handleRemoveItem]);
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     },
     errorText: {
         marginBottom: 16,
-        color: '#F44336',
+        color: '#fda535',
         textAlign: 'center',
     },
     retryButton: {
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     },
     dayBadgeText: {
         fontSize: 12,
-        color: '#FF6B6B',
+        color: '#fda535',
     },
     scheduleFooter: {
         flexDirection: 'row',
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
     deleteButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F44336',
+        backgroundColor: '#fda535',
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 4,

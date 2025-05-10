@@ -22,7 +22,7 @@ import { vendorAPI } from '../../services/apiService';
 import { authService } from '../../services/apiService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const THEME_COLOR = '#FF9F6A';
+const THEME_COLOR = '#fda535';
 
 // Order Details Modal Component
 const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
@@ -43,7 +43,7 @@ const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
     const getStatusColor = (status) => {
         switch (status.toLowerCase()) {
             case 'pending':
-                return '#FF6B6B';
+                return '#fda535';
             case 'accepted':
                 return '#4361EE';
             case 'preparing':
@@ -189,7 +189,7 @@ const OrderItem = ({ order, onPress }) => {
     const getStatusColor = (status) => {
         switch (status.toLowerCase()) {
             case 'pending':
-                return '#FF6B6B';
+                return '#fda535';
             case 'accepted':
                 return '#4361EE';
             case 'preparing':

@@ -24,7 +24,7 @@ import axios from 'axios';
 import { API_URL } from '../config/constants';
 
 // Define theme color
-const THEME_COLOR = '#FF9F6A'; // Coral/Orange accent color
+const THEME_COLOR = '#fda535'; // Coral/Orange accent color
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout, isLoading: authLoading, userType } = useAuthStore();

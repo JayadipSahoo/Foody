@@ -66,7 +66,7 @@ const OrderItem = ({ order, onPress }) => {
   const getStatusColor = (status) => {
     switch (status.toLowerCase()) {
       case 'pending':
-        return '#FF9800';
+        return '#fda535';
       case 'accepted':
         return '#2196F3';
       case 'preparing':
@@ -76,7 +76,7 @@ const OrderItem = ({ order, onPress }) => {
       case 'delivered':
         return '#009688';
       case 'cancelled':
-        return '#F44336';
+        return '#fda535';
       default:
         return '#9E9E9E';
     }
@@ -421,7 +421,7 @@ const VendorDashboard = () => {
             icon="clock-outline"
             title="Pending Orders"
             value={stats.pendingOrders}
-            color="#FF9800"
+            color="#fda535"
             backgroundColor="#fff"
           />
           <StatCard
@@ -469,7 +469,7 @@ const VendorDashboard = () => {
               title="Manage Menu"
               subtitle="Add, edit or remove items"
               onPress={navigateToMenu}
-              color="#FF9800"
+              color="#fda535"
             />
             <ActionCard
               icon="clock-outline"

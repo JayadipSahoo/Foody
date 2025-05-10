@@ -19,7 +19,7 @@ import { useVendorStore } from '../../store/vendorStore';
 import CustomNumberPicker from '../../components/CustomNumberPicker';
 
 // Theme color to match the other screens
-const THEME_COLOR = '#FF9F6A'; // Orange/Coral accent
+const THEME_COLOR = '#fda535'; // Orange/Coral accent
 
 const weekDays = [
   { id: 0, name: 'Sunday' },
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginBottom: 16,
         borderLeftWidth: 4,
-        borderLeftColor: '#F44336',
+        borderLeftColor: '#fda535',
     },
     errorText: {
         color: '#D32F2F',
