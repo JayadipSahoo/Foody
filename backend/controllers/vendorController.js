@@ -293,31 +293,26 @@ const getVendorsByLocation = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Get public vendor profile
+// @desc    Get vendor public profile by ID
 // @route   GET /api/public/vendor/:vendorId
 // @access  Public
-const getVendorPublicProfile = async (req, res) => {
-    try {
-        const { vendorId } = req.params;
-        
-        if (!vendorId) {
-            return res.status(400).json({ message: 'Vendor ID is required' });
-        }
-
-        const vendor = await Vendor.findById(vendorId).select(
-            'name email phone description location address businessHours isAcceptingOrders isOpen coverImage logo cuisine averageRating reviewCount'
-        );
-
-        if (!vendor) {
-            return res.status(404).json({ message: 'Vendor not found' });
-        }
-
-        res.status(200).json(vendor);
-    } catch (error) {
-        console.error('Error in getVendorPublicProfile:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+const getVendorPublicProfile = asyncHandler(async (req, res) => {
+    const vendor = await Vendor.findById(req.params.vendorId);
+    
+    if (vendor) {
+        res.json({
+            _id: vendor._id,
+            name: vendor.name,
+            businessName: vendor.businessName,
+            address: vendor.address,
+            locationsServed: vendor.locationsServed,
+            isAcceptingOrders: vendor.isAcceptingOrders,
+        });
+    } else {
+        res.status(404);
+        throw new Error('Vendor not found');
     }
-};
+});
 
 // Export all controller functions
 module.exports = {

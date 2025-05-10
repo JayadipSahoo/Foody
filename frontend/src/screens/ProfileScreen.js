@@ -63,14 +63,14 @@ const ProfileScreen = ({ navigation }) => {
           }
         } else {
           // Get user data from AsyncStorage as fallback for customers
-          const userDataString = await AsyncStorage.getItem('userData');
-          if (userDataString) {
-            const parsedData = JSON.parse(userDataString);
-            setUserData(parsedData);
+        const userDataString = await AsyncStorage.getItem('userData');
+        if (userDataString) {
+          const parsedData = JSON.parse(userDataString);
+          setUserData(parsedData);
             initFormValues(parsedData);
-          } else if (user) {
-            // If we have user in state, use that
-            setUserData(user);
+        } else if (user) {
+          // If we have user in state, use that
+          setUserData(user);
             initFormValues(user);
           }
         }
@@ -311,9 +311,9 @@ const ProfileScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            <View style={styles.profileHeader}>
-              <View style={styles.avatarContainer}>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
                 <Text style={styles.avatarText}>
                   {name ? name.charAt(0).toUpperCase() : '?'}
                 </Text>
@@ -348,8 +348,8 @@ const ProfileScreen = ({ navigation }) => {
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-                </View>
-                
+        </View>
+
                 {userType === 'vendor' ? (
                   <>
                     <View style={styles.formGroup}>
@@ -411,7 +411,7 @@ const ProfileScreen = ({ navigation }) => {
                           onPress={handleAddLocation}
                         >
                           <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-                        </TouchableOpacity>
+          </TouchableOpacity>
                       </View>
                     </View>
                   </>
@@ -426,7 +426,7 @@ const ProfileScreen = ({ navigation }) => {
                         placeholder="Your phone number"
                         keyboardType="phone-pad"
                       />
-                    </View>
+        </View>
 
                     <View style={styles.formGroup}>
                       <Text style={styles.label}>Notifications</Text>
@@ -454,8 +454,8 @@ const ProfileScreen = ({ navigation }) => {
                     }}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  
+          </TouchableOpacity>
+          
                   <TouchableOpacity
                     style={styles.saveButton}
                     onPress={handleUpdateProfile}
@@ -479,9 +479,9 @@ const ProfileScreen = ({ navigation }) => {
                   >
                     <MaterialCommunityIcons name="pencil" size={18} color="#fff" />
                     <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
-                </View>
-                
+          </TouchableOpacity>
+        </View>
+
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Name:</Text>
                   <Text style={styles.infoValue}>{userData?.name || "Not set"}</Text>
@@ -530,8 +530,8 @@ const ProfileScreen = ({ navigation }) => {
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Phone:</Text>
                       <Text style={styles.infoValue}>{phoneNumber || userData?.phoneNumber || "Not set"}</Text>
-                    </View>
-                    
+        </View>
+
                     <View style={styles.infoRow}>
                       <Text style={styles.infoLabel}>Last Ordered:</Text>
                       <Text style={styles.infoValue}>{lastOrderedLocation || "No orders yet"}</Text>
@@ -547,9 +547,9 @@ const ProfileScreen = ({ navigation }) => {
                 )}
               </View>
             )}
-          </ScrollView>
+      </ScrollView>
         </View>
-      </SafeAreaView>
+    </SafeAreaView>
     </>
   );
 };
