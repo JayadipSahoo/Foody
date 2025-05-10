@@ -125,6 +125,7 @@ exports.getVendorOrders = async (req, res) => {
         }
 
         const orders = await Order.find({ vendorId: req.params.vendorId })
+            .populate('customerId', 'name email mobile')
             .sort({ createdAt: -1 });
         
         res.status(200).json(orders);

@@ -15,6 +15,7 @@ import {
     Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVendorStore } from '../../store/vendorStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { vendorAPI } from '../../services/apiService';
@@ -108,11 +109,15 @@ const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
                             <Text style={styles.sectionTitle}>Customer Information</Text>
                             <View style={styles.infoRow}>
                                 <Ionicons name="person-outline" size={20} color="#6C757D" />
-                                <Text style={styles.infoText}>{order.customer?.name || 'Customer'}</Text>
+                                <Text style={styles.infoText}>{order.customerId?.name || 'Customer'}</Text>
                             </View>
                             <View style={styles.infoRow}>
                                 <Ionicons name="call-outline" size={20} color="#6C757D" />
-                                <Text style={styles.infoText}>{order.customer?.phone || 'N/A'}</Text>
+                                <Text style={styles.infoText}>{order.customerId?.mobile || 'N/A'}</Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Ionicons name="mail-outline" size={20} color="#6C757D" />
+                                <Text style={styles.infoText}>{order.customerId?.email || 'N/A'}</Text>
                             </View>
                         </View>
 
@@ -121,7 +126,7 @@ const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
                             <Text style={styles.sectionTitle}>Order Information</Text>
                             <View style={styles.infoRow}>
                                 <Ionicons name="receipt-outline" size={20} color="#6C757D" />
-                                <Text style={styles.infoText}>Order #{order._id.slice(-6)}</Text>
+                                <Text style={styles.infoText}>Order # {order._id}</Text>
                             </View>
                             <View style={styles.infoRow}>
                                 <Ionicons name="time-outline" size={20} color="#6C757D" />
@@ -161,6 +166,7 @@ const OrderDetailsModal = ({ visible, order, onClose, onUpdateStatus }) => {
                             <Text style={styles.totalLabel}>Total Amount</Text>
                             <Text style={styles.totalAmount}>₹{order.totalAmount.toFixed(2)}</Text>
                         </View>
+                        <View style={styles.bottomPadding}></View>
                     </ScrollView>
                 </View>
             </View>
@@ -204,8 +210,16 @@ const OrderItem = ({ order, onPress }) => {
             <View style={styles.orderHeader}>
                 <View>
                     <Text style={styles.orderNumber}>Order #{order._id.slice(-6)}</Text>
-                    <Text style={styles.customerName}>{order.customer?.name || 'Customer'}</Text>
-                    <Text style={styles.customerPhone}>{order.customer?.phone || 'N/A'}</Text>
+                    <View style={styles.customerInfo}>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="person-outline" size={16} color="#6C757D" />
+                            <Text style={styles.customerName}>{order.customerId?.name || 'Customer'}</Text>
+                        </View>
+                        <View style={styles.infoRow}>
+                            <Ionicons name="call-outline" size={16} color="#6C757D" />
+                            <Text style={styles.customerPhone}>{order.customerId?.mobile || 'N/A'}</Text>
+                        </View>
+                    </View>
                 </View>
                 <View
                     style={[
@@ -259,31 +273,14 @@ const VendorOrdersScreen = ({ navigation }) => {
             setIsLoading(true);
             setError(null);
             const response = await vendorAPI.getVendorOrders();
-            
-            // Fetch customer details for each order
-            // const ordersWithCustomerDetails = await Promise.all(
-            //     response.map(async (order) => {
-            //         try {
-            //             const customerDetails = await authService.getUserById(order.customerId);
-            //             return {
-            //                 ...order,
-            //                 customer: customerDetails
-            //             };
-            //         } catch (error) {
-            //             console.error('Error fetching customer details:', error);
-            //             return order;
-            //         }
-            //     })
-            // );
-
             setOrders(response);
             
             // Filter orders based on status
-            // if (status === 'all') {
-            //     setFilteredOrders(ordersWithCustomerDetails);
-            // } else {
-            //     setFilteredOrders(ordersWithCustomerDetails.filter(order => order.status === status));
-            // }
+            if (status === 'all') {
+                setFilteredOrders(response);
+            } else {
+                setFilteredOrders(response.filter(order => order.status === status));
+            }
         } catch (error) {
             console.error('Error fetching orders:', error);
             setError('Failed to load orders. Please try again.');
@@ -422,17 +419,17 @@ const VendorOrdersScreen = ({ navigation }) => {
     return (
         <>
             <StatusBar backgroundColor={THEME_COLOR} barStyle="light-content" />
-            <SafeAreaView style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <Text style={styles.title}>Orders</Text>
-                    <View style={styles.rightPlaceholder} />
-                </View>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => navigation.goBack()}
+                >
+                        <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+                </TouchableOpacity>
+                <Text style={styles.title}>Orders</Text>
+                <View style={styles.rightPlaceholder} />
+            </View>
 
                 {renderFilterButtons()}
 
@@ -443,13 +440,13 @@ const VendorOrdersScreen = ({ navigation }) => {
                 ) : error ? (
                     <View style={styles.errorContainer}>
                         <Text style={styles.errorText}>{error}</Text>
-                        <TouchableOpacity
+                    <TouchableOpacity 
                             style={styles.retryButton}
                             onPress={() => fetchOrders(activeFilter)}
-                        >
+                    >
                             <Text style={styles.retryButtonText}>Retry</Text>
                         </TouchableOpacity>
-                    </View>
+                </View>
                 ) : filteredOrders.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <Ionicons
@@ -463,7 +460,7 @@ const VendorOrdersScreen = ({ navigation }) => {
                                 ? "You haven't received any orders yet"
                                 : `No ${activeFilter} orders found`}
                         </Text>
-                    </View>
+            </View>
                 ) : (
                     <FlatList
                         data={filteredOrders}
@@ -491,7 +488,7 @@ const VendorOrdersScreen = ({ navigation }) => {
                     }}
                     onUpdateStatus={updateOrderStatus}
                 />
-            </SafeAreaView>
+        </SafeAreaView>
         </>
     );
 };
@@ -505,20 +502,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: THEME_COLOR,
+        backgroundColor: '#FFFFFF',
         paddingVertical: 16,
-        paddingHorizontal: 20,
-        ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-            },
-            android: {
-                elevation: 5,
-            },
-        }),
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
     },
     backButton: {
         padding: 8,
@@ -526,7 +514,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: '#333',
     },
     rightPlaceholder: {
         width: 40,
@@ -581,15 +569,23 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#212529',
     },
+    customerInfo: {
+        marginTop: 4,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 2,
+    },
     customerName: {
         fontSize: 14,
         color: '#6C757D',
-        marginTop: 4,
+        marginLeft: 4,
     },
     customerPhone: {
         fontSize: 14,
         color: '#6C757D',
-        marginTop: 2,
+        marginLeft: 4,
     },
     orderStatus: {
         paddingHorizontal: 12,
@@ -727,11 +723,6 @@ const styles = StyleSheet.create({
         color: '#212529',
         marginBottom: 12,
     },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
     infoText: {
         fontSize: 14,
         color: '#6C757D',
@@ -779,6 +770,9 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: THEME_COLOR,
+    },
+    bottomPadding: {
+        height: 40,
     },
     statusSection: {
         marginBottom: 24,

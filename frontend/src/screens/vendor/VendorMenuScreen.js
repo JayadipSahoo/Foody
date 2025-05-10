@@ -346,8 +346,6 @@ const VendorMenuScreen = ({ navigation }) => {
                             <Text style={activeTab === 'dinner' ? styles.activeTabText : styles.tabText}>Dinner</Text>
                     </TouchableOpacity>
             </View>
-                    
-                    <Text style={styles.totalItems}>Total {filteredItems.length} Items</Text>
 
             <View style={styles.searchContainer}>
                 <TextInput
