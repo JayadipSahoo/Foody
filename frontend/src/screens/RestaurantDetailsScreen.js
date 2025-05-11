@@ -52,6 +52,9 @@ const RestaurantDetailsScreen = () => {
     // Create a state for the restaurant data
     const [restaurant, setRestaurant] = useState(null);
 
+    // NEW: Add state for time window message
+    const [timeWindowMessage, setTimeWindowMessage] = useState(null);
+
     // Process restaurant data properly
     useEffect(() => {
         // Create a new object to avoid mutating the original
@@ -219,67 +222,58 @@ const RestaurantDetailsScreen = () => {
         
         setLoading(true);
         setError(null);
+        
         try {
-            // First try the public endpoint
-            const url = `${API_URL}/public/menu/vendor/${restaurantId}`;
-            console.log('Calling API URL:', url);
+            // Use the correct API endpoint path structure
+            const url = `${API_URL}/public/user/menu/${restaurantId}`;
+            console.log('Calling menu API URL:', url);
             
-            const response = await axios.get(url, { timeout: 10000 });
+            const response = await fetch(url);
             
-            // Log the response data for debugging
-            console.log('Menu items response:', response.data);
-            
-            if (Array.isArray(response.data)) {
-                console.log('Setting menu items array:', response.data.length, 'items');
-                setMenuItems(response.data);
-            } else if (response.data && response.data.items) {
-                // If API returns an object with items property
-                console.log('Setting menu items from object.items:', response.data.items.length, 'items');
-                setMenuItems(response.data.items);
-            } else if (response.data) {
-                // Any other structure, try to use the data directly
-                console.log('Setting menu items from response.data');
-                setMenuItems(response.data);
-            } else {
-                // Empty or null response
-                console.log('Empty response, using mock data');
-                setMenuItems(getMockMenuItems());
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
             }
-        } catch (err) {
-            console.error('Error fetching menu items:', err);
-            console.error('Error details:', err.response ? err.response.data : 'No response data');
             
-            // Try alternative endpoint if this is the first attempt
-            if (retryCount === 0) {
-                console.log('Trying alternative endpoint for menu items...');
-                try {
-                    // Try direct menu route as fallback
-                    const fallbackUrl = `${API_URL}/menu/vendor/${restaurantId}`;
-                    console.log('Calling fallback API URL:', fallbackUrl);
-                    
-                    const fallbackResponse = await axios.get(fallbackUrl, { timeout: 10000 });
-                    if (Array.isArray(fallbackResponse.data)) {
-                        setMenuItems(fallbackResponse.data);
-                        setLoading(false);
-                        return;
-                    }
-                } catch (fallbackErr) {
-                    console.error('Fallback also failed:', fallbackErr);
-                }
+            const data = await response.json();
+            console.log('Menu items fetched raw data:', data);
+            
+            if (data && data.items && Array.isArray(data.items)) {
+                console.log(`Received ${data.items.length} total menu items`);
+                console.log(`Breakdown: ${data.items.filter(i => i.isScheduled).length} scheduled items, ${data.items.filter(i => !i.isScheduled).length} regular items`);
                 
-                // If we get here, try once more with retry count incremented
-                return fetchMenuItems(retryCount + 1);
+                // Always show scheduled items as available
+                const processedItems = data.items.map(item => {
+                    if (item.isScheduled) {
+                        return {...item, isAvailable: true};
+                    }
+                    return item;
+                });
+                
+                setMenuItems(processedItems);
+                
+                // Set time window message - for now always show it if there are any menu items
+                // This helps users understand the availability windows even if no scheduled items
+                // are currently available
+                setTimeWindowMessage("Menu availability times");
+            } else {
+                console.log('No valid items array in API response');
+                setMenuItems([]);
+                setTimeWindowMessage(null);
             }
             
-            setError('Unable to load menu items. Please try again later.');
-            
-            // Set mock data as last resort
-            console.log('Using mock data due to error');
-            const mockData = getMockMenuItems();
-            console.log('Mock data:', mockData);
-            setMenuItems(mockData);
-        } finally {
             setLoading(false);
+        } catch (error) {
+            console.error('Error fetching menu items:', error);
+            
+            if (retryCount < 2) {
+                // Retry after delay (exponential backoff)
+                const delay = Math.pow(2, retryCount) * 1000;
+                console.log(`Retrying after ${delay}ms...`);
+                setTimeout(() => fetchMenuItems(retryCount + 1), delay);
+            } else {
+                setError('Failed to load menu items. Please try again.');
+                setLoading(false);
+            }
         }
     };
 
@@ -447,56 +441,85 @@ const RestaurantDetailsScreen = () => {
     
     // Render a single menu item
     const renderMenuItem = ({ item }) => {
-        if (!item) return null;
-        const cartItem = cartItems.find(ci => ci._id === item._id);
+        if (!item) {
+            console.log("Skipping null/undefined menu item");
+            return null;
+        }
+        
+        console.log("Rendering menu item:", item.name, 
+                    "isAvailable:", item.isAvailable, 
+                    "isScheduled:", item.isScheduled);
+        
+        // Ensure item has necessary properties with fallbacks
+        const menuItem = {
+            _id: item._id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            name: (item.name && item.name.trim()) || 'Unnamed Item',
+            price: item.price || 0,
+            description: (item.description && item.description.trim()) || 'No description available',
+            isVeg: !!item.isVeg,
+            // Force scheduled items to be available
+            isAvailable: item.isScheduled ? true : (item.isAvailable !== false),
+            mealType: item.mealType || '',
+            isScheduled: !!item.isScheduled,
+            category: item.category || ''
+        };
+        
+        const cartItem = cartItems.find(ci => ci._id === menuItem._id);
         const isInCart = !!cartItem;
+        
         return (
             <TouchableOpacity
                 style={styles.menuItem}
-                onPress={() => !isInCart && item.isAvailable && addToCart(item, restaurant?._id, restaurant?.name)}
-                disabled={!item.isAvailable}
+                onPress={() => !isInCart && menuItem.isAvailable && addToCart(menuItem, restaurant?._id, restaurant?.name)}
+                disabled={!menuItem.isAvailable}
             >
                 <View style={styles.menuItemDetails}>
                     <View style={styles.menuItemHeader}>
-                        <Text style={styles.menuItemName}>{item.name}</Text>
-                        <Text style={styles.menuItemPrice}>₹{item.price}</Text>
+                        <Text style={styles.menuItemName}>{menuItem.name}</Text>
+                        <Text style={styles.menuItemPrice}>₹{menuItem.price}</Text>
                     </View>
                     <Text style={styles.menuItemDescription} numberOfLines={2}>
-                        {item.description || 'No description available'}
+                        {menuItem.description}
                     </Text>
                     <View style={styles.menuItemMeta}>
                         <View style={[
                             styles.menuItemType,
-                            item.isVeg ? styles.vegBadge : styles.nonVegBadge
+                            menuItem.isVeg ? styles.vegBadge : styles.nonVegBadge
                         ]}>
                             <Text style={[styles.menuItemTypeText, {color: 'white'}]}>
-                                {item.isVeg ? 'Veg' : 'Non-Veg'}
+                                {menuItem.isVeg ? 'Veg' : 'Non-Veg'}
                             </Text>
                         </View>
-                        {item.mealType && (
+                        {menuItem.mealType && (
                             <View style={styles.mealTypeBadge}>
-                                <Text style={styles.mealTypeText}>{item.mealType}</Text>
+                                <Text style={styles.mealTypeText}>{menuItem.mealType}</Text>
                             </View>
                         )}
-                        {!item.isAvailable && (
+                        {menuItem.isScheduled && (
+                            <View style={styles.scheduledBadge}>
+                                <MaterialIcons name="access-time" size={12} color={THEME_COLOR} />
+                                <Text style={styles.scheduledText}>Scheduled</Text>
+                            </View>
+                        )}
+                        {!menuItem.isAvailable && (
                             <View style={styles.unavailableBadge}>
                                 <Text style={styles.unavailableText}>Unavailable</Text>
                             </View>
                         )}
                     </View>
-                    {item.isAvailable && (
+                    {menuItem.isAvailable && (
                         isInCart ? (
                             <View style={styles.quantityControl}>
                                 <TouchableOpacity 
                                     style={styles.quantityButton}
-                                    onPress={() => updateItemQuantity(item._id, cartItem.quantity - 1)}
+                                    onPress={() => updateItemQuantity(menuItem._id, cartItem.quantity - 1)}
                                 >
                                     <Text style={styles.quantityButtonText}>-</Text>
                                 </TouchableOpacity>
                                 <Text style={styles.quantityText}>{cartItem.quantity}</Text>
                                 <TouchableOpacity 
                                     style={styles.quantityButton}
-                                    onPress={() => updateItemQuantity(item._id, cartItem.quantity + 1)}
+                                    onPress={() => updateItemQuantity(menuItem._id, cartItem.quantity + 1)}
                                 >
                                     <Text style={styles.quantityButtonText}>+</Text>
                                 </TouchableOpacity>
@@ -504,7 +527,7 @@ const RestaurantDetailsScreen = () => {
                         ) : (
                             <TouchableOpacity
                                 style={styles.addButton}
-                                onPress={() => addToCart(item, restaurant?._id, restaurant?.name)}
+                                onPress={() => addToCart(menuItem, restaurant?._id, restaurant?.name)}
                             >
                                 <Text style={styles.addButtonText}>ADD</Text>
                             </TouchableOpacity>
@@ -550,6 +573,41 @@ const RestaurantDetailsScreen = () => {
                 <Text style={styles.restaurantDescription}>
                     {restaurant?.description || 'No description available'}
                 </Text>
+
+                {/* Display time window message if available */}
+                {timeWindowMessage ? (
+                    <View style={styles.timeWindowContainer}>
+                        {/* Time window header */}
+                        <View style={styles.timeWindowHeader}>
+                            <MaterialIcons name="access-time" size={18} color="#fda535" />
+                            <Text style={styles.timeWindowTitle}>Menu Availability</Text>
+                        </View>
+                        
+                        {/* Lunch time window */}
+                        <View style={styles.mealTimeWindow}>
+                            <Text style={styles.mealTypeTitle}>🍜 Lunch:</Text>
+                            <Text style={styles.timeWindowText}>
+                                Available from 5:00 PM previous day until 9:00 AM today
+                            </Text>
+                        </View>
+                        
+                        {/* Dinner time window */}
+                        <View style={styles.mealTimeWindow}>
+                            <Text style={styles.mealTypeTitle}>🍲 Dinner:</Text>
+                            <Text style={styles.timeWindowText}>
+                                Available from 5:00 PM previous day until 6:00 PM today
+                            </Text>
+                        </View>
+                        
+                        {/* Early access note */}
+                        <View style={styles.earlyAccessNote}>
+                            <MaterialIcons name="new-releases" size={16} color="#fda535" />
+                            <Text style={styles.earlyAccessText}>
+                                Next day's lunch available from 6:00 PM
+                            </Text>
+                        </View>
+                    </View>
+                ) : null}
             </View>
 
             {/* Menu Title */}
@@ -737,6 +795,20 @@ const RestaurantDetailsScreen = () => {
                     {restaurant?.name || 'Restaurant Details'}
                 </Text>
                 <View style={styles.headerRight} />
+            </View>
+
+            {/* Menu section header - moved below */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Menu</Text>
+                {cartItems.length > 0 && (
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate('Cart')}
+                        style={styles.viewCartButton}
+                    >
+                        <Text style={styles.viewCartText}>View Cart ({getItemCount()})</Text>
+                        <Text style={styles.cartTotal}>₹{getCartTotal()}</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Menu Items List */}
@@ -1137,6 +1209,96 @@ const styles = StyleSheet.create({
         marginHorizontal: 10,
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    timeWindowContainer: {
+        backgroundColor: 'rgba(253, 165, 53, 0.1)',
+        padding: 12,
+        borderRadius: 8,
+        marginHorizontal: 16,
+        marginVertical: 12,
+    },
+    timeWindowHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    timeWindowTitle: {
+        color: '#fda535',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    mealTimeWindow: {
+        marginLeft: 4,
+        marginBottom: 4,
+    },
+    mealTypeTitle: {
+        color: '#333',
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    timeWindowText: {
+        color: '#666',
+        fontSize: 12,
+        marginLeft: 4,
+    },
+    earlyAccessNote: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        backgroundColor: 'rgba(253, 165, 53, 0.2)',
+        padding: 8,
+        borderRadius: 4,
+    },
+    earlyAccessText: {
+        color: '#fda535',
+        fontSize: 12,
+        marginLeft: 6,
+        fontWeight: '500',
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+        elevation: 2,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    viewCartButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: THEME_COLOR,
+    },
+    viewCartText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    cartTotal: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    scheduledBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        backgroundColor: 'rgba(253, 165, 53, 0.2)',
+        marginLeft: 8,
+    },
+    scheduledText: {
+        fontSize: 10,
+        color: '#fda535',
+        fontWeight: 'bold',
+        marginLeft: 2,
     },
 });
 

@@ -18,6 +18,9 @@ export function CartProvider({ children }) {
             return;
         }
 
+        // Log item being added for debugging
+        console.log("Adding to cart:", item);
+
         setCartItems(prevItems => {
             // Check if we're adding items from a different restaurant
             if (prevItems.length > 0 && cartRestaurant?.id !== restaurantId) {
@@ -39,6 +42,8 @@ export function CartProvider({ children }) {
                                     ...item,
                                     quantity: 1,
                                     restaurantId: restaurantId, // Store for consistency check
+                                    // Preserve isScheduled flag
+                                    isScheduled: !!item.isScheduled
                                 }]);
                                 Alert.alert('Item Added', `${item.name} added to your new cart.`);
                             }
@@ -68,6 +73,8 @@ export function CartProvider({ children }) {
                     ...item,
                     quantity: 1,
                     restaurantId: restaurantId, // Store for consistency check
+                    // Preserve isScheduled flag
+                    isScheduled: !!item.isScheduled
                 }];
             }
         });

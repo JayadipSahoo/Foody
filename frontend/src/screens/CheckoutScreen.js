@@ -82,10 +82,16 @@ const CheckoutScreen = () => {
           isVeg: item.isVeg
         };
         const hash = hashItemSnapshot(itemSnapshot);
+        
+        // Include debug info
+        console.log(`Preparing to order: ${item.name}, Scheduled: ${item.isScheduled}, Available: ${item.isAvailable}`);
+        
         return {
           itemId: item._id,
           quantity: item.quantity,
-          versionHash: hash
+          versionHash: hash,
+          // Include isScheduled flag for backend to handle specially
+          isScheduled: !!item.isScheduled
         };
       });
   

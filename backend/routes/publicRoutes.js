@@ -10,6 +10,8 @@ router.get('/menu/vendor/:vendorId', menuController.getVendorMenu);
 // Public menu schedule routes
 router.get('/menu-schedule/today/:vendorId', menuScheduleController.getTodayMenu);
 router.get('/menu-schedule/week/:vendorId', menuScheduleController.getWeekMenu);
+// New route for user menu with IST time window
+router.get('/user/menu/:vendorId', menuScheduleController.getUserMenu);
 
 // Public vendor routes
 router.get('/vendors/by-location', vendorController.getVendorsByLocation);
