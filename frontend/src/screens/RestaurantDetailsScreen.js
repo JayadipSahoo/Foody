@@ -798,7 +798,7 @@ const RestaurantDetailsScreen = () => {
             </View>
 
             {/* Menu section header - moved below */}
-            <View style={styles.sectionHeader}>
+            {/* <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Menu</Text>
                 {cartItems.length > 0 && (
                     <TouchableOpacity 
@@ -809,7 +809,7 @@ const RestaurantDetailsScreen = () => {
                         <Text style={styles.cartTotal}>₹{getCartTotal()}</Text>
                     </TouchableOpacity>
                 )}
-            </View>
+            </View> */}
 
             {/* Menu Items List */}
             <FlatList
