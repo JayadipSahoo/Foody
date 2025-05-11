@@ -6,7 +6,7 @@ import { StatusBar, View, ActivityIndicator, StyleSheet } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import useAuthStore from "../store/authStore";
-import CheckoutScreen from '../screens/CheckoutScreen';
+import CheckoutScreen from '../screens/user/CheckoutScreen';
 
 // Define our theme color
 const THEME_COLOR = '#fda535'; // Updated theme color
@@ -18,11 +18,11 @@ import WelcomeScreen from "../screens/WelcomeScreen";
 import SplashScreen from "../screens/SplashScreen";
 
 // Main app screens
-import HomeScreen from "../screens/HomeScreen";
+import HomeScreen from "../screens/user/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import RestaurantDetailsScreen from "../screens/RestaurantDetailsScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
-import UserOrdersScreen from "../screens/UserOrdersScreen";
+import RestaurantDetailsScreen from "../screens/user/RestaurantDetailsScreen";
+import NotificationsScreen from "../screens/user/NotificationsScreen";
+import UserOrdersScreen from "../screens/user/UserOrdersScreen";
 
 // Vendor screens
 import VendorDashboardScreen from '../screens/vendor/VendorDashboardScreen';

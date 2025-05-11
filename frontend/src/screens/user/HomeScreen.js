@@ -11,13 +11,15 @@ import {
     FlatList,
     Modal,
 } from "react-native";
-import useAuthStore from "../store/authStore";
+import useAuthStore from "../../store/authStore";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import axios from 'axios';
-import { API_URL } from '../config';
+import { API_URL } from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useUserStore from "../store/userStore";
+import useUserStore from "../../store/userStore";
+import { useCart } from "../../context/CartContext";
+import CartTab from "../../components/CartTab";
 
 const HomeScreen = () => {
     const { user, userType, logout } = useAuthStore();
@@ -27,6 +29,7 @@ const HomeScreen = () => {
         setLastOrderedLocation,
         initUserData
     } = useUserStore();
+    const { cartItems } = useCart();
     const navigation = useNavigation();
     const [locationQuery, setLocationQuery] = useState("");
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -340,7 +343,10 @@ const HomeScreen = () => {
                         </View>
                     </TouchableOpacity>
                 )}
-                contentContainerStyle={styles.restaurantList}
+                contentContainerStyle={[
+                    styles.restaurantList,
+                    { paddingBottom: cartItems.length > 0 ? 80 : 20 }
+                ]}
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         <Text style={styles.emptyText}>
@@ -354,6 +360,7 @@ const HomeScreen = () => {
                 }
             />
             
+            <CartTab />
         </SafeAreaView>
     );
 };
@@ -375,7 +382,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#FF9F6A',
+        backgroundColor: '#fda535',
         justifyContent: 'center',
         alignItems: 'center',
     },

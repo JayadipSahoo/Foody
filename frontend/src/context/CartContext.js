@@ -129,17 +129,8 @@ export function CartProvider({ children }) {
 
 
     const clearCart = () => {
-        Alert.alert(
-            "Clear Cart",
-            "Are you sure you want to clear your cart?",
-            [
-                { text: "Cancel", style: "cancel" },
-                { text: "OK", onPress: () => {
-                    setCartItems([]);
-                    setCartRestaurant(null); // Clear restaurant info as well
-                }}
-            ]
-        );
+        setCartItems([]);
+        setCartRestaurant(null); // Clear restaurant info as well
     };
 
     // Uses numeric price directly

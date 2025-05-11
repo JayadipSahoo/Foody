@@ -4,16 +4,19 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Alert, ScrollView, SafeAreaView, StatusBar, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useCart } from '../context/CartContext';
-import useUserStore from '../store/userStore';
-import api from "../services/apiService";
-import hashItemSnapshot from '../utils/hashItemSnapshot';
+import { useCart } from '../../context/CartContext';
+import useUserStore from '../../store/userStore';
+import api from "../../services/apiService";
+import hashItemSnapshot from '../../utils/hashItemSnapshot';
 
 const paymentOptions = [
   { key: 'upi', label: 'UPI' },
   { key: 'card', label: 'Credit/Debit Card' },
   { key: 'cod', label: 'Cash on Delivery' },
 ];
+
+// Theme color
+const THEME_COLOR = '#fda535';
 
 // Component for individual cart item in the order summary
 const CartItemRow = ({ item, onIncrease, onDecrease }) => (
@@ -231,7 +234,7 @@ const CheckoutScreen = () => {
           
           {/* Delivery Time */}
           <View style={styles.detailRow}>
-            <MaterialIcons name="access-time" size={24} color="#FF9D6C" />
+            <MaterialIcons name="access-time" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Estimated Time</Text>
               <Text style={styles.detailValue}>{getEstimatedDeliveryTime()}</Text>
@@ -241,7 +244,7 @@ const CheckoutScreen = () => {
           
           {/* Delivery Location */}
           <View style={styles.detailRow}>
-            <MaterialIcons name="location-on" size={24} color="#FF9D6C" />
+            <MaterialIcons name="location-on" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Delivery Address</Text>
               <Text style={styles.detailValue}>{lastOrderedLocation || "Select a location"}</Text>
@@ -251,7 +254,7 @@ const CheckoutScreen = () => {
           
           {/* User Information */}
           <View style={styles.detailRow}>
-            <MaterialIcons name="person" size={24} color="#FF9D6C" />
+            <MaterialIcons name="person" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Contact Info</Text>
               <Text style={styles.detailValue}>Baibhav, +91-9521399080</Text>
@@ -261,7 +264,7 @@ const CheckoutScreen = () => {
           
           {/* Total Bill */}
           <View style={styles.detailRow}>
-            <MaterialIcons name="receipt" size={24} color="#FF9D6C" />
+            <MaterialIcons name="receipt" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Order Total</Text>
               <Text style={styles.totalValue}>₹{total}</Text>
@@ -306,7 +309,7 @@ const CheckoutScreen = () => {
                 >
                   <Text style={styles.modalOptionText}>{item.label}</Text>
                   {paymentMethod === item.key && (
-                    <MaterialIcons name="check" size={20} color="#FF9D6C" />
+                    <MaterialIcons name="check" size={20} color={THEME_COLOR} />
                   )}
                 </TouchableOpacity>
               )}
@@ -444,7 +447,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   qtyBtn: {
-    backgroundColor: '#FF9D6C',
+    backgroundColor: THEME_COLOR,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -506,7 +509,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignSelf: 'flex-end',
-    backgroundColor: '#FF9D6C',
+    backgroundColor: THEME_COLOR,
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -582,7 +585,7 @@ const styles = StyleSheet.create({
   },
   payBtn: {
     flex: 1,
-    backgroundColor: '#FF9D6C',
+    backgroundColor: THEME_COLOR,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center'
@@ -624,7 +627,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   modalCloseText: {
-    color: '#FF9D6C',
+    color: '#fda535',
     fontWeight: 'bold'
   },
 });

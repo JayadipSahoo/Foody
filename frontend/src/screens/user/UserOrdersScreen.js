@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { customerAPI } from '../services/apiService';
+import { customerAPI } from '../../services/apiService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const THEME_COLOR = '#fda535';
