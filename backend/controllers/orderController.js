@@ -6,9 +6,10 @@ const { mockProcessPayment } = require("../services/paymentService");
 // @desc    Get all orders for a customer
 // @route   GET /api/orders
 // @access  Private
-exports.getOrders = async (req, res) => {
+exports.getCustomerOrders = async (req, res) => {
     try {
         const orders = await Order.find({ customerId: req.user._id })
+            .populate('vendorId', 'businessName contactNumber email')
             .sort({ createdAt: -1 });
         res.status(200).json(orders);
     } catch (error) {

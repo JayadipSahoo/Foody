@@ -22,7 +22,7 @@ import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RestaurantDetailsScreen from "../screens/RestaurantDetailsScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
-import CartScreen from "../screens/CartScreen"; // Will need to create this file
+import UserOrdersScreen from "../screens/UserOrdersScreen";
 
 // Vendor screens
 import VendorDashboardScreen from '../screens/vendor/VendorDashboardScreen';
@@ -46,8 +46,8 @@ const CustomerTab = () => {
                     let iconName;
                     if (route.name === 'Home') {
                         iconName = focused ? 'home' : 'home-outline';
-                    } else if (route.name === 'Cart') {
-                        iconName = focused ? 'cart' : 'cart-outline';
+                    } else if (route.name === 'Orders') {
+                        iconName = focused ? 'list' : 'list-outline';
                     } else if (route.name === 'Notifications') {
                         iconName = focused ? 'notifications' : 'notifications-outline';
                     } else if (route.name === 'Profile') {
@@ -71,8 +71,8 @@ const CustomerTab = () => {
                 }}
             />
             <Tab.Screen 
-                name="Cart" 
-                component={CartScreen} 
+                name="Orders" 
+                component={UserOrdersScreen} 
                 options={{ 
                     headerShown: false
                 }}

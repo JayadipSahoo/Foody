@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL configuration
 export const getBaseUrl = () => {
-    return "http://192.168.29.159:5000/api";
+    return "http://192.168.1.21:5000/api";
 };
 
 // Debug flag for API requests - set to false for real API calls
@@ -330,16 +330,6 @@ api.interceptors.response.use(
 
 // Customer API service
 export const customerAPI = {
-    // Customer orders
-    getOrders: async () => {
-        try {
-            const response = await api.get('/orders');
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching customer orders:', error);
-            throw error;
-        }
-    },
 
     getOrderById: async (id) => {
         try {
@@ -359,7 +349,29 @@ export const customerAPI = {
             console.error('Error creating order:', error);
             throw error;
         }
-    }
+    },
+
+    // Get all orders made by the current user
+    getCustomerOrders: async () => {
+        try {
+            // Get user ID from stored user data
+            const userData = await AsyncStorage.getItem('userData');
+            if (!userData) {
+                throw new Error('No user data found');
+            }
+
+            const { _id: userId } = JSON.parse(userData);
+            if (!userId) {
+                throw new Error('No user ID found in user data');
+            }
+            console.log("Hello from getCustomerOrders", userId);
+            const response = await api.get(`/orders/customer/${userId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching user orders:', error);
+            throw error;
+        }
+    },
 };
 
 // Vendor API service
@@ -772,5 +784,7 @@ export const authService = {
         }
     }
 };
+
+
 
 export default api;

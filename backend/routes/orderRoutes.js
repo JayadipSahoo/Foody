@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
     createOrder,
-    getOrders,
+    getCustomerOrders,
     getOrderById,
     updateOrderStatus,
     getVendorOrders,
@@ -14,8 +14,7 @@ router.use(protect);
 
 // Routes
 router.route("/")
-    .post(createOrder)
-    .get(getOrders);
+    .post(createOrder);
 
 router.route("/:id")
     .get(getOrderById);
@@ -25,5 +24,8 @@ router.put("/:id/status", isVendor, updateOrderStatus);
 
 // Vendor can see their orders
 router.get("/vendor/:vendorId", isVendor, getVendorOrders);
+
+// Customer can see their orders
+router.get("/customer/:customerId", getCustomerOrders);
 
 module.exports = router; 

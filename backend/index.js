@@ -9,7 +9,7 @@ const { errorHandler } = require("./middleware/authMiddleware");
 dotenv.config();
 
 // Temporary -- for dev environment
-const ip = '192.168.29.159';
+const ip = '192.168.1.21';
 
 // Connect to MongoDB
 connectDB();
