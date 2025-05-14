@@ -3,7 +3,7 @@
  */
 
 // API Configuration
-export const API_URL = "http://192.168.0.112:5000/api";
+export const API_URL = "http://192.168.1.106:5000/api";
 // If using iOS simulator, use 'http://localhost:5000/api'
 // If using physical device, use your computer's local IP address like 'http://192.168.1.100:5000/api'
 

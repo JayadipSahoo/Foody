@@ -15,22 +15,22 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import { API_URL } from "../config/constants";
-import { useUserStore } from "../store/userStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const LoginScreen = ({ navigation }) => {
+const SignupRequestScreen = ({ navigation }) => {
     // State for form
+    const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [mobile, setMobile] = useState("");
     const [selectedVendorId, setSelectedVendorId] = useState("");
+    const [vendorCode, setVendorCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [vendors, setVendors] = useState([]);
     const [isLoadingVendors, setIsLoadingVendors] = useState(true);
     const [error, setError] = useState("");
-
-    // Get login function from store
-    const { loginDeliveryStaff } = useUserStore();
 
     // Fetch vendors for dropdown
     useEffect(() => {
@@ -53,11 +53,44 @@ const LoginScreen = ({ navigation }) => {
         fetchVendors();
     }, []);
 
-    // Handle login
-    const handleLogin = async () => {
+    // Handle signup
+    const handleSignup = async () => {
         // Validate form fields
-        if (!email.trim() || !password.trim() || !selectedVendorId) {
+        if (
+            !name.trim() ||
+            !email.trim() ||
+            !password.trim() ||
+            !confirmPassword.trim() ||
+            !mobile.trim() ||
+            !selectedVendorId ||
+            !vendorCode.trim()
+        ) {
             setError("Please fill in all fields");
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /\S+@\S+\.\S+/;
+        if (!emailRegex.test(email)) {
+            setError("Please enter a valid email address");
+            return;
+        }
+
+        // Validate mobile number (basic validation)
+        if (mobile.length < 10) {
+            setError("Please enter a valid mobile number");
+            return;
+        }
+
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        // Check password length
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters long");
             return;
         }
 
@@ -65,35 +98,35 @@ const LoginScreen = ({ navigation }) => {
         setError("");
 
         try {
-            const loginResult = await loginDeliveryStaff(
+            const response = await axios.post(`${API_URL}/delivery/signup`, {
+                name,
                 email,
                 password,
-                selectedVendorId
-            );
+                mobile,
+                vendorId: selectedVendorId,
+                vendorCode,
+            });
 
-            if (loginResult.success) {
-                // Navigate to main app
-                navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Main" }],
-                });
-            } else {
-                setError(
-                    loginResult.message ||
-                        "Login failed. Please check your credentials."
-                );
-            }
+            Alert.alert(
+                "Signup Successful",
+                "Your account has been created and is pending approval from the vendor.",
+                [
+                    {
+                        text: "OK",
+                        onPress: () => navigation.navigate("Login"),
+                    },
+                ]
+            );
         } catch (error) {
-            console.error("Login error:", error);
-            setError("Login failed. Please try again.");
+            const errorMessage =
+                error.response && error.response.data.message
+                    ? error.response.data.message
+                    : "Registration failed. Please try again.";
+
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
-    };
-
-    // Navigate to signup screen
-    const handleSignupPress = () => {
-        navigation.navigate("SignupRequest");
     };
 
     return (
@@ -105,15 +138,43 @@ const LoginScreen = ({ navigation }) => {
                 contentContainerStyle={styles.scrollContainer}
                 keyboardShouldPersistTaps="handled"
             >
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <MaterialCommunityIcons
+                            name="arrow-left"
+                            size={24}
+                            color="#333"
+                        />
+                    </TouchableOpacity>
+                </View>
+
                 <Image
                     source={require("../../assets/delivery-logo.png")}
                     style={styles.logo}
                     resizeMode="contain"
                 />
 
-                <Text style={styles.title}>Delivery Staff Login</Text>
+                <Text style={styles.title}>Delivery Staff Registration</Text>
 
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                        name="account-outline"
+                        size={20}
+                        color="#666"
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Full Name"
+                        value={name}
+                        onChangeText={setName}
+                    />
+                </View>
 
                 <View style={styles.inputContainer}>
                     <MaterialCommunityIcons
@@ -129,6 +190,22 @@ const LoginScreen = ({ navigation }) => {
                         onChangeText={setEmail}
                         keyboardType="email-address"
                         autoCapitalize="none"
+                    />
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                        name="phone-outline"
+                        size={20}
+                        color="#666"
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Mobile Number"
+                        value={mobile}
+                        onChangeText={setMobile}
+                        keyboardType="phone-pad"
                     />
                 </View>
 
@@ -156,6 +233,22 @@ const LoginScreen = ({ navigation }) => {
                             color="#666"
                         />
                     </TouchableOpacity>
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                        name="lock-outline"
+                        size={20}
+                        color="#666"
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={!showPassword}
+                    />
                 </View>
 
                 <View style={styles.pickerContainer}>
@@ -192,24 +285,48 @@ const LoginScreen = ({ navigation }) => {
                     )}
                 </View>
 
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                        name="key-outline"
+                        size={20}
+                        color="#666"
+                        style={styles.inputIcon}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Vendor Code"
+                        value={vendorCode}
+                        onChangeText={setVendorCode}
+                        autoCapitalize="characters"
+                    />
+                </View>
+
+                <Text style={styles.infoText}>
+                    Note: You need a valid vendor code from the restaurant you
+                    work for. Your account will be pending until approved by the
+                    vendor.
+                </Text>
+
                 <TouchableOpacity
-                    style={styles.loginButton}
-                    onPress={handleLogin}
+                    style={styles.signupButton}
+                    onPress={handleSignup}
                     disabled={isLoading}
                 >
                     {isLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                        <Text style={styles.loginButtonText}>Login</Text>
+                        <Text style={styles.signupButtonText}>Register</Text>
                     )}
                 </TouchableOpacity>
 
-                <View style={styles.signupContainer}>
-                    <Text style={styles.signupText}>
-                        Don't have an account?
+                <View style={styles.loginContainer}>
+                    <Text style={styles.loginText}>
+                        Already have an account?
                     </Text>
-                    <TouchableOpacity onPress={handleSignupPress}>
-                        <Text style={styles.signupLink}>Request Access</Text>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate("Login")}
+                    >
+                        <Text style={styles.loginLink}>Login</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -225,20 +342,29 @@ const styles = StyleSheet.create({
     scrollContainer: {
         flexGrow: 1,
         paddingHorizontal: 30,
-        paddingTop: 50,
+        paddingTop: 20,
         paddingBottom: 30,
         alignItems: "center",
     },
+    header: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 20,
+    },
+    backButton: {
+        padding: 5,
+    },
     logo: {
-        width: 150,
-        height: 150,
-        marginBottom: 30,
+        width: 120,
+        height: 120,
+        marginBottom: 20,
     },
     title: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: "bold",
         color: "#333",
-        marginBottom: 30,
+        marginBottom: 20,
         textAlign: "center",
     },
     inputContainer: {
@@ -269,7 +395,7 @@ const styles = StyleSheet.create({
         height: 50,
         backgroundColor: "#f5f5f5",
         borderRadius: 10,
-        marginBottom: 20,
+        marginBottom: 15,
         paddingHorizontal: 15,
     },
     picker: {
@@ -286,7 +412,14 @@ const styles = StyleSheet.create({
         marginLeft: 10,
         color: "#666",
     },
-    loginButton: {
+    infoText: {
+        textAlign: "center",
+        color: "#666",
+        marginBottom: 20,
+        fontSize: 12,
+        fontStyle: "italic",
+    },
+    signupButton: {
         width: "100%",
         height: 50,
         backgroundColor: "#FF6B6B",
@@ -295,19 +428,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: 10,
     },
-    loginButtonText: {
+    signupButtonText: {
         color: "#fff",
         fontSize: 18,
         fontWeight: "bold",
     },
-    signupContainer: {
+    loginContainer: {
         flexDirection: "row",
         marginTop: 20,
     },
-    signupText: {
+    loginText: {
         color: "#666",
     },
-    signupLink: {
+    loginLink: {
         color: "#FF6B6B",
         fontWeight: "bold",
         marginLeft: 5,
@@ -319,4 +452,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default LoginScreen;
+export default SignupRequestScreen;

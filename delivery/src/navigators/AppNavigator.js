@@ -6,38 +6,35 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Screens
 import LoginScreen from "../screens/LoginScreen";
+import SignupRequestScreen from "../screens/SignupRequestScreen";
 import HomeScreen from "../screens/HomeScreen";
 import OrderDetailsScreen from "../screens/OrderDetailsScreen";
 import DeliveryScreen from "../screens/DeliveryScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
 // Store
-import useUserStore from "../store/userStore";
+import { useUserStore } from "../store/userStore";
 
 const Stack = createStackNavigator();
 
+// Main Navigator
 const AppNavigator = () => {
     const [isLoading, setIsLoading] = useState(true);
-    const { user, setUser } = useUserStore();
+    const { user, initUserData } = useUserStore();
 
     useEffect(() => {
-        // Check if user is already logged in
-        const checkUserSession = async () => {
+        // Initialize user data from AsyncStorage
+        const loadUserData = async () => {
             try {
-                const userData = await AsyncStorage.getItem("user");
-                const token = await AsyncStorage.getItem("token");
-
-                if (userData && token) {
-                    setUser(JSON.parse(userData));
-                }
+                await initUserData();
             } catch (error) {
-                console.error("Error checking user session:", error);
+                console.error("Error loading user data:", error);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        checkUserSession();
+        loadUserData();
     }, []);
 
     if (isLoading) {
@@ -47,58 +44,85 @@ const AppNavigator = () => {
                     flex: 1,
                     justifyContent: "center",
                     alignItems: "center",
+                    backgroundColor: "#fff",
                 }}
             >
-                <ActivityIndicator size="large" color="#0000ff" />
+                <ActivityIndicator size="large" color="#FF6B6B" />
             </View>
         );
     }
 
     return (
         <NavigationContainer>
-            <Stack.Navigator
-                screenOptions={{
-                    headerStyle: {
-                        backgroundColor: "#FFA500",
-                    },
-                    headerTintColor: "#fff",
-                    headerTitleStyle: {
-                        fontWeight: "bold",
-                    },
-                }}
-            >
+            <Stack.Navigator>
                 {user ? (
-                    <>
-                        <Stack.Screen
-                            name="Home"
-                            component={HomeScreen}
-                            options={{ title: "Delivery Dashboard" }}
-                        />
-                        <Stack.Screen
-                            name="OrderDetails"
-                            component={OrderDetailsScreen}
-                            options={{ title: "Order Details" }}
-                        />
-                        <Stack.Screen
-                            name="Delivery"
-                            component={DeliveryScreen}
-                            options={{ title: "Delivery Progress" }}
-                        />
-                        <Stack.Screen
-                            name="Profile"
-                            component={ProfileScreen}
-                            options={{ title: "Profile" }}
-                        />
-                    </>
-                ) : (
+                    // Main App Screens (Protected)
                     <Stack.Screen
-                        name="Login"
-                        component={LoginScreen}
+                        name="Main"
+                        component={MainStack}
+                        options={{ headerShown: false }}
+                    />
+                ) : (
+                    // Auth Screens
+                    <Stack.Screen
+                        name="Auth"
+                        component={AuthStack}
                         options={{ headerShown: false }}
                     />
                 )}
             </Stack.Navigator>
         </NavigationContainer>
+    );
+};
+
+// Auth Stack (Login, Signup)
+const AuthStack = () => {
+    return (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen
+                name="SignupRequest"
+                component={SignupRequestScreen}
+            />
+        </Stack.Navigator>
+    );
+};
+
+// Main App Stack (Protected routes)
+const MainStack = () => {
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: "#FF6B6B",
+                },
+                headerTintColor: "#fff",
+                headerTitleStyle: {
+                    fontWeight: "bold",
+                },
+            }}
+        >
+            <Stack.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{ title: "Delivery Dashboard" }}
+            />
+            <Stack.Screen
+                name="OrderDetails"
+                component={OrderDetailsScreen}
+                options={{ title: "Order Details" }}
+            />
+            <Stack.Screen
+                name="Delivery"
+                component={DeliveryScreen}
+                options={{ title: "Delivery Progress" }}
+            />
+            <Stack.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{ title: "Profile" }}
+            />
+        </Stack.Navigator>
     );
 };
 

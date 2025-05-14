@@ -35,8 +35,8 @@ const vendorSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            default: 'vendor',
-            required: true
+            default: "vendor",
+            required: true,
         },
         locationsServed: [
             {
@@ -58,6 +58,33 @@ const vendorSchema = new mongoose.Schema(
                 timestamp: {
                     type: Date,
                     default: Date.now,
+                },
+            },
+        ],
+        deliveryStaff: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "DeliveryStaff",
+            },
+        ],
+        deliveryStaffCodes: [
+            {
+                code: {
+                    type: String,
+                    required: true,
+                },
+                isUsed: {
+                    type: Boolean,
+                    default: false,
+                },
+                generatedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+                assignedTo: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "DeliveryStaff",
+                    default: null,
                 },
             },
         ],

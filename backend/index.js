@@ -9,7 +9,7 @@ const { errorHandler } = require("./middleware/authMiddleware");
 dotenv.config();
 
 // Temporary -- for dev environment
-const ip = "192.168.0.112";
+const ip = "192.168.1.106";
 
 // Connect to MongoDB
 connectDB();
@@ -58,6 +58,7 @@ app.use(
     require("./routes/vendorScheduleRoutes")
 );
 app.use(`${API_BASE_URL}/orders`, require("./routes/orderRoutes"));
+app.use(`${API_BASE_URL}/delivery`, require("./routes/deliveryRoutes"));
 
 // Public routes that don't require authentication
 app.use(`${API_BASE_URL}/public`, require("./routes/publicRoutes"));

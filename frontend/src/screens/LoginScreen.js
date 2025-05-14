@@ -13,15 +13,15 @@ import {
     Alert,
 } from "react-native";
 import useAuthStore from "../store/authStore";
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import CustomTextField from '../components/CustomTextField';
-import PrimaryButton from '../components/PrimaryButton';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { API_URL } from '../config';
+import Ionicons from "react-native-vector-icons/Ionicons";
+import CustomTextField from "../components/CustomTextField";
+import PrimaryButton from "../components/PrimaryButton";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { API_URL } from "../config";
 
 // Define the theme color for consistency
-const THEME_COLOR = '#FDA535';
+const THEME_COLOR = "#FDA535";
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState("");
@@ -30,9 +30,13 @@ const LoginScreen = ({ navigation }) => {
     const [passwordValid, setPasswordValid] = useState(null);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [userType, setUserType] = useState("customer");
-    const { login, isLoading, error, clearError, user, logout } = useAuthStore();
+    const { login, isLoading, error, clearError, user, logout } =
+        useAuthStore();
     const [loading, setLoading] = useState(false);
-    const [backendStatus, setBackendStatus] = useState({ checked: false, available: false });
+    const [backendStatus, setBackendStatus] = useState({
+        checked: false,
+        available: false,
+    });
 
     // Check if the backend is available on component mount
     useEffect(() => {
@@ -42,87 +46,103 @@ const LoginScreen = ({ navigation }) => {
     // Check if user is already logged in on mount
     useEffect(() => {
         const checkLoginStatus = async () => {
-            const token = await AsyncStorage.getItem('userToken');
-            
+            const token = await AsyncStorage.getItem("userToken");
+
             if (token) {
-                console.log('Found existing token, checking validity...');
-                
+                console.log("Found existing token, checking validity...");
+
                 // Get stored user type
-                const storedUserType = await AsyncStorage.getItem('userType');
-                console.log('Retrieved stored userType:', storedUserType);
-                
+                const storedUserType = await AsyncStorage.getItem("userType");
+                console.log("Retrieved stored userType:", storedUserType);
+
                 try {
                     // Try to access a protected endpoint
-                    const response = await axios.get(`${API_URL}/vendor/profile`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    console.log('Token is valid, user already logged in');
-                    
+                    const response = await axios.get(
+                        `${API_URL}/vendor/profile`,
+                        {
+                            headers: { Authorization: `Bearer ${token}` },
+                        }
+                    );
+                    console.log("Token is valid, user already logged in");
+
                     // Navigate based on user type
                     navigation.reset({
                         index: 0,
-                        routes: [{ name: 'Main' }],
+                        routes: [{ name: "Main" }],
                     });
                 } catch (error) {
-                    console.log('Token validation failed:', error);
-                    
+                    console.log("Token validation failed:", error);
+
                     // If it's a 401 or other error, clear the token
                     await logout();
                 }
             }
         };
-        
+
         checkLoginStatus();
     }, []);
 
-    console.log('LoginScreen rendered with user:', user);
+    console.log("LoginScreen rendered with user:", user);
 
     useEffect(() => {
-        console.log('Auth state changed:', { user, error, isLoading });
+        console.log("Auth state changed:", { user, error, isLoading });
         if (user) {
-            console.log('User authenticated in LoginScreen, userType:', user.userType);
+            console.log(
+                "User authenticated in LoginScreen, userType:",
+                user.userType
+            );
         }
     }, [user, error, isLoading]);
 
     const checkBackendStatus = async () => {
         try {
-            console.log('Checking backend status...');
+            console.log("Checking backend status...");
             // Use the base API URL instead of the non-existent /health endpoint
-            const response = await axios.get(API_URL, { timeout: 5000 })
-                .catch(error => {
-                    if (error.code === 'ECONNABORTED') {
-                        throw new Error('Backend connection timed out');
+            const response = await axios
+                .get(API_URL, { timeout: 5000 })
+                .catch((error) => {
+                    if (error.code === "ECONNABORTED") {
+                        throw new Error("Backend connection timed out");
                     }
-                    
+
                     // Even a 404 from the base API URL means the server is running
-                    if (error.response && (error.response.status === 404 || error.response.status === 401)) {
+                    if (
+                        error.response &&
+                        (error.response.status === 404 ||
+                            error.response.status === 401)
+                    ) {
                         // This is actually a good sign - the server responded, just not with the endpoint we expected
-                        console.log('Server responded with 404/401 - server is running but endpoint not found/unauthorized');
-                        return { status: 200, data: { message: 'Server is running' } };
+                        console.log(
+                            "Server responded with 404/401 - server is running but endpoint not found/unauthorized"
+                        );
+                        return {
+                            status: 200,
+                            data: { message: "Server is running" },
+                        };
                     }
                     throw error;
                 });
-                
-            console.log('Backend is available:', response.status);
+
+            console.log("Backend is available:", response.status);
             setBackendStatus({ checked: true, available: true });
         } catch (error) {
-            console.error('Backend is not available:', error);
+            console.error("Backend is not available:", error);
             setBackendStatus({ checked: true, available: false });
-            
+
             // Show an alert about backend unavailability
             Alert.alert(
-                'Server Connection Issue',
-                'Unable to connect to the server. Please check your internet connection and try again.',
-                [{ text: 'OK' }]
+                "Server Connection Issue",
+                "Unable to connect to the server. Please check your internet connection and try again.",
+                [{ text: "OK" }]
             );
         }
     };
 
     const validateEmail = (email) => {
-        console.log('Validating email:', email);
+        console.log("Validating email:", email);
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const isValid = regex.test(email);
-        console.log('Email validation result:', isValid);
+        console.log("Email validation result:", isValid);
         return isValid;
     };
 
@@ -145,84 +165,99 @@ const LoginScreen = ({ navigation }) => {
         if (!backendStatus.checked) {
             await checkBackendStatus();
         }
-        
+
         if (!backendStatus.available) {
             // If backend is not available, show alert
             Alert.alert(
-                'Server Connection Issue',
-                'Cannot connect to the server. Please check your internet connection and try again.',
-                [{ text: 'OK' }]
+                "Server Connection Issue",
+                "Cannot connect to the server. Please check your internet connection and try again.",
+                [{ text: "OK" }]
             );
             return;
         }
 
         try {
             setLoading(true);
-            console.log(`Login attempted with email: ${email}, userType: ${userType}`);
-            
+            console.log(
+                `Login attempted with email: ${email}, userType: ${userType}`
+            );
+
             const userData = await login(email, password, userType);
-            console.log('Login successful, received userData:', JSON.stringify(userData));
-            
+            console.log(
+                "Login successful, received userData:",
+                JSON.stringify(userData)
+            );
+
             // Check for token
             if (!userData.token) {
-                console.error('No token in login response');
-                Alert.alert('Login Error', 'Authentication failed. Please try again.');
+                console.error("No token in login response");
+                Alert.alert(
+                    "Login Error",
+                    "Authentication failed. Please try again."
+                );
                 return;
             }
-            
+
             // Store token separately for debugging
             try {
-                await AsyncStorage.setItem('userToken', userData.token);
-                console.log('Token stored successfully:', userData.token.substring(0, 10) + '...');
-                
+                await AsyncStorage.setItem("userToken", userData.token);
+                console.log(
+                    "Token stored successfully:",
+                    userData.token.substring(0, 10) + "..."
+                );
+
                 // Make sure userType is properly set in storage
-                if (userType === 'vendor') {
-                    await AsyncStorage.setItem('userType', 'vendor');
-                    console.log('Explicitly set userType to vendor in storage');
+                if (userType === "vendor") {
+                    await AsyncStorage.setItem("userType", "vendor");
+                    console.log("Explicitly set userType to vendor in storage");
                 }
-                
+
                 // Verify token and userType were stored
                 const [storedToken, storedType] = await Promise.all([
-                    AsyncStorage.getItem('userToken'),
-                    AsyncStorage.getItem('userType')
+                    AsyncStorage.getItem("userToken"),
+                    AsyncStorage.getItem("userType"),
                 ]);
-                
-                console.log('Verified stored token:', storedToken ? storedToken.substring(0, 10) + '...' : 'No token found');
-                console.log('Verified stored userType:', storedType);
+
+                console.log(
+                    "Verified stored token:",
+                    storedToken
+                        ? storedToken.substring(0, 10) + "..."
+                        : "No token found"
+                );
+                console.log("Verified stored userType:", storedType);
             } catch (storageError) {
-                console.error('Error storing token:', storageError);
+                console.error("Error storing token:", storageError);
             }
-            
+
             // Navigate to the appropriate screen based on user type
             navigation.reset({
                 index: 0,
-                routes: [{ name: 'Main' }],
+                routes: [{ name: "Main" }],
             });
         } catch (error) {
-            console.error('Login error:', error);
-            
-            let errorMessage = 'Please check your credentials and try again.';
-            if (error.message && typeof error.message === 'string') {
-                if (error.message.includes('Network Error')) {
-                    errorMessage = 'Network error. Please check your internet connection.';
+            console.error("Login error:", error);
+
+            let errorMessage = "Please check your credentials and try again.";
+            if (error.message && typeof error.message === "string") {
+                if (error.message.includes("Network Error")) {
+                    errorMessage =
+                        "Network error. Please check your internet connection.";
                 } else if (error.response && error.response.status === 401) {
-                    errorMessage = 'Invalid email or password.';
+                    errorMessage = "Invalid email or password.";
                 } else if (error.response && error.response.status === 404) {
-                    errorMessage = 'Login service not available. Please try again later.';
+                    errorMessage =
+                        "Login service not available. Please try again later.";
                 }
             }
-            
-            Alert.alert(
-                'Login Failed',
-                errorMessage
-            );
+
+            Alert.alert("Login Failed", errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
     if (isLoading) {
-        console.log('Showing loading state');
+        console.log("Showing loading state");
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#FFA726" />
@@ -249,17 +284,19 @@ const LoginScreen = ({ navigation }) => {
                         <TouchableOpacity
                             style={[
                                 styles.userTypeButton,
-                                userType === "customer" && styles.activeUserType,
+                                userType === "customer" &&
+                                    styles.activeUserType,
                             ]}
                             onPress={() => {
-                                console.log('User type changed to: customer');
+                                console.log("User type changed to: customer");
                                 setUserType("customer");
                             }}
                         >
                             <Text
                                 style={[
                                     styles.userTypeText,
-                                    userType === "customer" && styles.activeUserTypeText,
+                                    userType === "customer" &&
+                                        styles.activeUserTypeText,
                                 ]}
                             >
                                 Customer
@@ -271,14 +308,15 @@ const LoginScreen = ({ navigation }) => {
                                 userType === "vendor" && styles.activeUserType,
                             ]}
                             onPress={() => {
-                                console.log('User type changed to: vendor');
+                                console.log("User type changed to: vendor");
                                 setUserType("vendor");
                             }}
                         >
                             <Text
                                 style={[
                                     styles.userTypeText,
-                                    userType === "vendor" && styles.activeUserTypeText,
+                                    userType === "vendor" &&
+                                        styles.activeUserTypeText,
                                 ]}
                             >
                                 Vendor
@@ -291,49 +329,67 @@ const LoginScreen = ({ navigation }) => {
                         <CustomTextField
                             value={email}
                             onChangeText={(text) => {
-                                console.log('Email changed:', text);
+                                console.log("Email changed:", text);
                                 setEmail(text);
                             }}
                             placeholder="example@gmail.com"
                             onBlur={() => {
                                 const isValid = validateEmail(email);
-                                console.log('Email validation on blur:', isValid);
+                                console.log(
+                                    "Email validation on blur:",
+                                    isValid
+                                );
                                 setEmailValid(isValid);
                             }}
                             isValid={emailValid}
                         />
-                        {emailValid === false && <Text style={styles.errorText}>Invalid email address</Text>}
+                        {emailValid === false && (
+                            <Text style={styles.errorText}>
+                                Invalid email address
+                            </Text>
+                        )}
 
                         <Text style={styles.formLabel}>Password</Text>
                         <CustomTextField
                             value={password}
                             onChangeText={(text) => {
-                                console.log('Password changed');
+                                console.log("Password changed");
                                 setPassword(text);
                             }}
                             placeholder="********"
                             secureTextEntry={!passwordVisible}
                             onBlur={() => {
                                 const isValid = password.length >= 8;
-                                console.log('Password validation on blur:', isValid);
+                                console.log(
+                                    "Password validation on blur:",
+                                    isValid
+                                );
                                 setPasswordValid(isValid);
                             }}
                             isValid={passwordValid}
                             showIcon={true}
                             iconName={passwordVisible ? "eye" : "eye-off"}
                             onIconPress={() => {
-                                console.log('Password visibility toggled');
+                                console.log("Password visibility toggled");
                                 setPasswordVisible(!passwordVisible);
                             }}
                         />
-                        {passwordValid === false && <Text style={styles.errorText}>Password must be at least 8 characters</Text>}
+                        {passwordValid === false && (
+                            <Text style={styles.errorText}>
+                                Password must be at least 8 characters
+                            </Text>
+                        )}
 
                         <View style={styles.row}>
                             <TouchableOpacity>
-                                <Text style={styles.rememberMe}>Remember me</Text>
+                                <Text style={styles.rememberMe}>
+                                    Remember me
+                                </Text>
                             </TouchableOpacity>
                             <TouchableOpacity>
-                                <Text style={styles.forgotPassword}>Forgot Password</Text>
+                                <Text style={styles.forgotPassword}>
+                                    Forgot Password
+                                </Text>
                             </TouchableOpacity>
                         </View>
 
@@ -351,7 +407,7 @@ const LoginScreen = ({ navigation }) => {
                             </Text>
                             <TouchableOpacity
                                 onPress={() => {
-                                    console.log('Navigating to Signup screen');
+                                    console.log("Navigating to Signup screen");
                                     navigation.navigate("Signup", { userType });
                                 }}
                             >
@@ -363,8 +419,16 @@ const LoginScreen = ({ navigation }) => {
                     <Text style={styles.orText}>Or</Text>
 
                     <View style={styles.socialIcons}>
-                        <Ionicons name="logo-facebook" size={32} color="#4267B2" />
-                        <Ionicons name="logo-twitter" size={32} color="#1DA1F2" />
+                        <Ionicons
+                            name="logo-facebook"
+                            size={32}
+                            color="#4267B2"
+                        />
+                        <Ionicons
+                            name="logo-twitter"
+                            size={32}
+                            color="#1DA1F2"
+                        />
                         <Ionicons name="logo-apple" size={32} color="#000000" />
                     </View>
                 </ScrollView>
@@ -380,14 +444,14 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#fff',
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#fff",
     },
     loadingText: {
         marginTop: 10,
         fontSize: 16,
-        color: '#666',
+        color: "#666",
     },
     scrollView: {
         flexGrow: 1,
@@ -442,19 +506,19 @@ const styles = StyleSheet.create({
         color: "#333",
     },
     errorText: {
-        color: '#FF3B30',
+        color: "#FF3B30",
         fontSize: 12,
         marginTop: 4,
         marginBottom: 8,
     },
     row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginTop: 16,
     },
     rememberMe: {
-        color: '#666',
+        color: "#666",
         fontSize: 14,
     },
     forgotPassword: {
@@ -476,15 +540,15 @@ const styles = StyleSheet.create({
         fontWeight: "600",
     },
     orText: {
-        textAlign: 'center',
+        textAlign: "center",
         marginTop: 24,
         marginBottom: 24,
-        color: '#666',
+        color: "#666",
         fontSize: 14,
     },
     socialIcons: {
-        flexDirection: 'row',
-        justifyContent: 'center',
+        flexDirection: "row",
+        justifyContent: "center",
         gap: 24,
     },
 });
