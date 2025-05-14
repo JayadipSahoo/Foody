@@ -10,6 +10,7 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    Clipboard,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import axios from "axios";
@@ -26,6 +27,7 @@ const AddDeliveryStaffScreen = ({ navigation }) => {
     const [vendorCode, setVendorCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isFetchingVendorData, setIsFetchingVendorData] = useState(false);
+    const [codeCopied, setCodeCopied] = useState(false);
 
     const { vendorData, fetchVendorProfile } = useVendorStore();
     const { token } = useAuthStore();
@@ -129,6 +131,22 @@ const AddDeliveryStaffScreen = ({ navigation }) => {
         }
     };
 
+    // Generate a random code (e.g., 6 alphanumeric chars)
+    const generateRandomCode = () => {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let code = "";
+        for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        setVendorCode(code);
+        setCodeCopied(false);
+    };
+
+    const handleCopyCode = () => {
+        Clipboard.setString(vendorCode);
+        setCodeCopied(true);
+    };
+
     // Show loading indicator if fetching vendor data
     if (isFetchingVendorData) {
         return (
@@ -192,13 +210,52 @@ const AddDeliveryStaffScreen = ({ navigation }) => {
                         />
 
                         <Text style={styles.formLabel}>Vendor Code</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Create a code for delivery person to login"
-                            value={vendorCode}
-                            onChangeText={setVendorCode}
-                        />
-
+                        <View
+                            style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                            }}
+                        >
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="Create a code for delivery person to login"
+                                value={vendorCode}
+                                onChangeText={setVendorCode}
+                            />
+                            <TouchableOpacity
+                                style={{
+                                    marginLeft: 8,
+                                    backgroundColor: THEME_COLOR,
+                                    padding: 10,
+                                    borderRadius: 6,
+                                }}
+                                onPress={generateRandomCode}
+                            >
+                                <MaterialCommunityIcons
+                                    name="refresh"
+                                    size={20}
+                                    color="#fff"
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={{
+                                    marginLeft: 8,
+                                    backgroundColor: codeCopied
+                                        ? "#4CAF50"
+                                        : "#eee",
+                                    padding: 10,
+                                    borderRadius: 6,
+                                }}
+                                onPress={handleCopyCode}
+                                disabled={!vendorCode}
+                            >
+                                <MaterialCommunityIcons
+                                    name={codeCopied ? "check" : "content-copy"}
+                                    size={20}
+                                    color={codeCopied ? "#fff" : "#888"}
+                                />
+                            </TouchableOpacity>
+                        </View>
                         <View style={styles.noteContainer}>
                             <MaterialCommunityIcons
                                 name="information"

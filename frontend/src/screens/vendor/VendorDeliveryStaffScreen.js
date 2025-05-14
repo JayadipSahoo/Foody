@@ -28,9 +28,6 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
     const [deliveryStaff, setDeliveryStaff] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [modalVisible, setModalVisible] = useState(false);
-    const [generatedCode, setGeneratedCode] = useState("");
-    const [codeCopied, setCodeCopied] = useState(false);
 
     // Get vendor data from store
     const { vendorData, isLoading: vendorLoading } = useVendorStore();
@@ -87,37 +84,6 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
             setIsRefreshing(false);
         }
     }, [vendorData, token]);
-
-    // Generate vendor code for delivery staff
-    const generateVendorCode = useCallback(async () => {
-        if (!token) return;
-
-        try {
-            const config = {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-            };
-
-            const response = await axios.post(
-                `${API_URL}/delivery/code`,
-                {},
-                config
-            );
-
-            setGeneratedCode(response.data.code);
-            setModalVisible(true);
-            setCodeCopied(false);
-        } catch (err) {
-            Alert.alert(
-                "Error",
-                err.response && err.response.data.message
-                    ? err.response.data.message
-                    : "Failed to generate code."
-            );
-        }
-    }, [token]);
 
     // Update delivery staff status
     const updateDeliveryStaffStatus = useCallback(
@@ -179,6 +145,29 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
                 <Text style={styles.staffName}>{item.name}</Text>
                 <Text style={styles.staffEmail}>{item.email}</Text>
                 <Text style={styles.staffMobile}>{item.mobile}</Text>
+                <View
+                    style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginTop: 4,
+                    }}
+                >
+                    <Text style={styles.codeLabel}>Code: </Text>
+                    <Text style={styles.codeValue}>{item.vendorCode}</Text>
+                    <TouchableOpacity
+                        onPress={() => {
+                            Clipboard.setString(item.vendorCode);
+                            Alert.alert("Copied", "Code copied to clipboard");
+                        }}
+                    >
+                        <MaterialCommunityIcons
+                            name="content-copy"
+                            size={18}
+                            color="#888"
+                            style={{ marginLeft: 6 }}
+                        />
+                    </TouchableOpacity>
+                </View>
                 <View
                     style={[
                         styles.statusBadge,
@@ -247,12 +236,6 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
         </View>
     );
 
-    // Handle copy code to clipboard
-    const copyToClipboard = () => {
-        Clipboard.setString(generatedCode);
-        setCodeCopied(true);
-    };
-
     return (
         <>
             <StatusBar backgroundColor={THEME_COLOR} barStyle="light-content" />
@@ -303,38 +286,6 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
                     ) : (
                         <>
                             <View style={styles.contentContainer}>
-                                <TouchableOpacity
-                                    style={styles.generateCodeButton}
-                                    onPress={generateVendorCode}
-                                >
-                                    <MaterialCommunityIcons
-                                        name="key-plus"
-                                        size={24}
-                                        color="#fff"
-                                    />
-                                    <Text style={styles.generateCodeButtonText}>
-                                        Generate Vendor Code
-                                    </Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.addStaffButton}
-                                    onPress={() =>
-                                        navigation.navigate(
-                                            "AddDeliveryStaffScreen"
-                                        )
-                                    }
-                                >
-                                    <MaterialCommunityIcons
-                                        name="account-plus"
-                                        size={24}
-                                        color="#fff"
-                                    />
-                                    <Text style={styles.addStaffButtonText}>
-                                        Add Delivery Staff
-                                    </Text>
-                                </TouchableOpacity>
-
                                 <Text style={styles.sectionTitle}>
                                     {deliveryStaff.length > 0
                                         ? "Your Delivery Staff"
@@ -376,52 +327,6 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
                         </>
                     )}
                 </View>
-
-                {/* Modal for displaying generated code */}
-                <Modal
-                    animationType="slide"
-                    transparent={true}
-                    visible={modalVisible}
-                    onRequestClose={() => setModalVisible(false)}
-                >
-                    <View style={styles.centeredView}>
-                        <View style={styles.modalView}>
-                            <Text style={styles.modalTitle}>
-                                Vendor Code Generated
-                            </Text>
-                            <Text style={styles.modalDescription}>
-                                Share this code with your delivery staff to
-                                register:
-                            </Text>
-                            <View style={styles.codeContainer}>
-                                <Text style={styles.codeText}>
-                                    {generatedCode}
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={styles.copyButton}
-                                onPress={copyToClipboard}
-                            >
-                                <MaterialCommunityIcons
-                                    name={codeCopied ? "check" : "content-copy"}
-                                    size={20}
-                                    color="#fff"
-                                />
-                                <Text style={styles.copyButtonText}>
-                                    {codeCopied ? "Copied!" : "Copy Code"}
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.closeButton}
-                                onPress={() => setModalVisible(false)}
-                            >
-                                <Text style={styles.closeButtonText}>
-                                    Close
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Modal>
             </SafeAreaView>
         </>
     );
@@ -502,36 +407,6 @@ const styles = StyleSheet.create({
     refreshButtonText: {
         color: "#fff",
         fontWeight: "bold",
-    },
-    generateCodeButton: {
-        backgroundColor: THEME_COLOR,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 15,
-    },
-    generateCodeButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-        marginLeft: 8,
-    },
-    addStaffButton: {
-        backgroundColor: "#4CAF50",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 20,
-    },
-    addStaffButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
-        marginLeft: 8,
     },
     sectionTitle: {
         fontSize: 18,
@@ -626,74 +501,15 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginLeft: 4,
     },
-    centeredView: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.5)",
-    },
-    modalView: {
-        width: "80%",
-        backgroundColor: "white",
-        borderRadius: 12,
-        padding: 25,
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    modalTitle: {
-        fontSize: 20,
+    codeLabel: {
+        fontSize: 14,
         fontWeight: "bold",
-        marginBottom: 10,
         color: "#333",
     },
-    modalDescription: {
-        fontSize: 16,
-        textAlign: "center",
-        marginBottom: 20,
-        color: "#555",
-    },
-    codeContainer: {
-        backgroundColor: "#f0f0f0",
-        padding: 15,
-        borderRadius: 8,
-        width: "100%",
-        alignItems: "center",
-        marginBottom: 15,
-    },
-    codeText: {
-        fontSize: 24,
-        fontWeight: "bold",
-        letterSpacing: 2,
-        color: "#333",
-    },
-    copyButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: THEME_COLOR,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 5,
-        marginBottom: 15,
-    },
-    copyButtonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        marginLeft: 8,
-    },
-    closeButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-    },
-    closeButtonText: {
+    codeValue: {
+        fontSize: 14,
         color: "#666",
-        fontWeight: "bold",
+        marginLeft: 8,
     },
 });
 
