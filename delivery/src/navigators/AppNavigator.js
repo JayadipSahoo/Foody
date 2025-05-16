@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Screens
@@ -27,6 +27,10 @@ const AppNavigator = () => {
         const loadUserData = async () => {
             try {
                 await initUserData();
+                console.log(
+                    "Auth state:",
+                    user ? "User is logged in" : "No user logged in"
+                );
             } catch (error) {
                 console.error("Error loading user data:", error);
             } finally {
@@ -48,6 +52,7 @@ const AppNavigator = () => {
                 }}
             >
                 <ActivityIndicator size="large" color="#FF6B6B" />
+                <Text style={{ marginTop: 10 }}>Loading...</Text>
             </View>
         );
     }

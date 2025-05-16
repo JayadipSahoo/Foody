@@ -241,6 +241,7 @@ const getVendorDeliveryStaff = async (req, res) => {
 
         const deliveryStaff = await DeliveryStaff.find({
             vendorId: req.params.vendorId,
+            status: "active",
         }).select("-password");
 
         res.status(200).json(deliveryStaff);
@@ -353,7 +354,7 @@ const updateDeliveryStaffStatus = async (req, res) => {
 // @access  Public
 const getAllVendors = async (req, res) => {
     try {
-        const vendors = await Vendor.find({ isActive: true }).select(
+        const vendors = await Vendor.find({ isAcceptingOrders: true }).select(
             "name businessName address"
         );
         res.status(200).json(vendors);
@@ -436,6 +437,30 @@ const registerDeliveryStaff = async (req, res) => {
     }
 };
 
+// @desc    Get all active delivery staff
+// @route   GET /api/delivery/all-active
+// @access  Private (Vendor only)
+const getAllActiveDeliveryStaff = async (req, res) => {
+    try {
+        // Only allow vendors to fetch all active delivery staff
+        console.log("req.user", req.user);
+        if (!req.user || !req.user._id || req.role !== "vendor") {
+            return res.status(401).json({
+                message:
+                    "Not authorized, only vendors can access this resource",
+            });
+        }
+        const deliveryStaff = await DeliveryStaff.find({
+            status: "active",
+        }).select("-password");
+        console.log("hiii");
+        res.status(200).json(deliveryStaff);
+    } catch (error) {
+        console.error("Error in getAllActiveDeliveryStaff:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 module.exports = {
     deliveryStaffSignup,
     deliveryStaffLogin,
@@ -445,4 +470,5 @@ module.exports = {
     updateDeliveryStaffStatus,
     getAllVendors,
     registerDeliveryStaff,
+    getAllActiveDeliveryStaff,
 };

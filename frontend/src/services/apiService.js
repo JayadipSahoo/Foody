@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL configuration
 export const getBaseUrl = () => {
-    return "http://192.168.1.106:5000/api";
+    return "http://192.168.0.101:5000/api";
 };
 
 // Debug flag for API requests - set to false for real API calls
@@ -712,6 +712,22 @@ export const vendorAPI = {
         } catch (error) {
             console.error(
                 `Error fetching weekly menu for vendor ${vendorId}:`,
+                error
+            );
+            throw error;
+        }
+    },
+
+    assignDeliveryStaffToOrder: async (orderId, deliveryStaffId) => {
+        try {
+            const response = await api.patch(
+                `/orders/${orderId}/assign-delivery`,
+                { deliveryStaffId }
+            );
+            return response.data;
+        } catch (error) {
+            console.error(
+                `Error assigning delivery staff to order ${orderId}:`,
                 error
             );
             throw error;

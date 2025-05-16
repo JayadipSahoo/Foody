@@ -20,6 +20,7 @@ import useAuthStore from "../../store/authStore";
 import axios from "axios";
 import { API_URL } from "../../config/constants";
 import { useFocusEffect } from "@react-navigation/native";
+import { customerAPI } from "../../services/apiService";
 
 const THEME_COLOR = "#FF9F6A";
 
@@ -28,6 +29,7 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
     const [deliveryStaff, setDeliveryStaff] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [orderDetailsMap, setOrderDetailsMap] = useState({});
 
     // Get vendor data from store
     const { vendorData, isLoading: vendorLoading } = useVendorStore();
@@ -138,103 +140,179 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
         }, [fetchDeliveryStaff])
     );
 
+    // Fetch order details for all staff with a currentOrder
+    useEffect(() => {
+        const fetchOrders = async () => {
+            const newMap = {};
+            await Promise.all(
+                deliveryStaff.map(async (staff) => {
+                    if (staff.currentOrder) {
+                        try {
+                            const order = await customerAPI.getOrderById(
+                                staff.currentOrder
+                            );
+                            newMap[staff._id] = order;
+                        } catch (e) {
+                            // ignore error
+                        }
+                    }
+                })
+            );
+            setOrderDetailsMap(newMap);
+        };
+        if (deliveryStaff.length > 0) fetchOrders();
+    }, [deliveryStaff]);
+
     // Render delivery staff item
-    const renderDeliveryStaffItem = ({ item }) => (
-        <View style={styles.staffItem}>
-            <View style={styles.staffInfo}>
-                <Text style={styles.staffName}>{item.name}</Text>
-                <Text style={styles.staffEmail}>{item.email}</Text>
-                <Text style={styles.staffMobile}>{item.mobile}</Text>
-                <View
-                    style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginTop: 4,
-                    }}
-                >
-                    <Text style={styles.codeLabel}>Code: </Text>
-                    <Text style={styles.codeValue}>{item.vendorCode}</Text>
-                    <TouchableOpacity
-                        onPress={() => {
-                            Clipboard.setString(item.vendorCode);
-                            Alert.alert("Copied", "Code copied to clipboard");
+    const renderDeliveryStaffItem = ({ item }) => {
+        const order = orderDetailsMap[item._id];
+        return (
+            <View style={styles.staffItem}>
+                <View style={styles.staffInfo}>
+                    <Text style={styles.staffName}>{item.name}</Text>
+                    <Text style={styles.staffEmail}>{item.email}</Text>
+                    <Text style={styles.staffMobile}>{item.mobile}</Text>
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginTop: 4,
                         }}
                     >
-                        <MaterialCommunityIcons
-                            name="content-copy"
-                            size={18}
-                            color="#888"
-                            style={{ marginLeft: 6 }}
-                        />
-                    </TouchableOpacity>
+                        <Text style={styles.codeLabel}>Code: </Text>
+                        <Text style={styles.codeValue}>{item.vendorCode}</Text>
+                        <TouchableOpacity
+                            onPress={() => {
+                                Clipboard.setString(item.vendorCode);
+                                Alert.alert(
+                                    "Copied",
+                                    "Code copied to clipboard"
+                                );
+                            }}
+                        >
+                            <MaterialCommunityIcons
+                                name="content-copy"
+                                size={18}
+                                color="#888"
+                                style={{ marginLeft: 6 }}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    <View
+                        style={[
+                            styles.statusBadge,
+                            {
+                                backgroundColor:
+                                    item.status === "active"
+                                        ? "#4CAF50"
+                                        : item.status === "pending"
+                                        ? "#FFC107"
+                                        : "#F44336",
+                            },
+                        ]}
+                    >
+                        <Text style={styles.statusText}>
+                            {item.status.toUpperCase()}
+                        </Text>
+                    </View>
+                    {/* Show current order summary if exists */}
+                    {order && (
+                        <TouchableOpacity
+                            style={styles.currentOrderCard}
+                            onPress={() =>
+                                navigation.navigate(
+                                    "DeliveryStaffOrderDetail",
+                                    { order }
+                                )
+                            }
+                        >
+                            <Text style={styles.currentOrderTitle}>
+                                Current Order
+                            </Text>
+                            <Text style={styles.currentOrderNumber}>
+                                Order #{order._id.slice(-6)}
+                            </Text>
+                            <Text>
+                                Status:{" "}
+                                <Text
+                                    style={{
+                                        color: "#FF9F6A",
+                                        fontWeight: "bold",
+                                    }}
+                                >
+                                    {order.status}
+                                </Text>
+                            </Text>
+                            <Text>
+                                Customer: {order.customerId?.name || "N/A"}
+                            </Text>
+                            <Text>
+                                Items:{" "}
+                                {order.items
+                                    .map((i) => i.name + " x" + i.quantity)
+                                    .join(", ")}
+                            </Text>
+                            <Text>Total: ₹{order.totalAmount.toFixed(2)}</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
-                <View
-                    style={[
-                        styles.statusBadge,
-                        {
-                            backgroundColor:
-                                item.status === "active"
-                                    ? "#4CAF50"
-                                    : item.status === "pending"
-                                    ? "#FFC107"
-                                    : "#F44336",
-                        },
-                    ]}
-                >
-                    <Text style={styles.statusText}>
-                        {item.status.toUpperCase()}
-                    </Text>
+                <View style={styles.actionsContainer}>
+                    {item.status === "pending" && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.approveButton]}
+                            onPress={() =>
+                                updateDeliveryStaffStatus(item._id, "active")
+                            }
+                        >
+                            <MaterialCommunityIcons
+                                name="check"
+                                size={18}
+                                color="#fff"
+                            />
+                            <Text style={styles.actionButtonText}>Approve</Text>
+                        </TouchableOpacity>
+                    )}
+                    {item.status === "active" && (
+                        <TouchableOpacity
+                            style={[
+                                styles.actionButton,
+                                styles.deactivateButton,
+                            ]}
+                            onPress={() =>
+                                updateDeliveryStaffStatus(item._id, "inactive")
+                            }
+                        >
+                            <MaterialCommunityIcons
+                                name="close"
+                                size={18}
+                                color="#fff"
+                            />
+                            <Text style={styles.actionButtonText}>
+                                Deactivate
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                    {item.status === "inactive" && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.approveButton]}
+                            onPress={() =>
+                                updateDeliveryStaffStatus(item._id, "active")
+                            }
+                        >
+                            <MaterialCommunityIcons
+                                name="refresh"
+                                size={18}
+                                color="#fff"
+                            />
+                            <Text style={styles.actionButtonText}>
+                                Activate
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
-            <View style={styles.actionsContainer}>
-                {item.status === "pending" && (
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.approveButton]}
-                        onPress={() =>
-                            updateDeliveryStaffStatus(item._id, "active")
-                        }
-                    >
-                        <MaterialCommunityIcons
-                            name="check"
-                            size={18}
-                            color="#fff"
-                        />
-                        <Text style={styles.actionButtonText}>Approve</Text>
-                    </TouchableOpacity>
-                )}
-                {item.status === "active" && (
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.deactivateButton]}
-                        onPress={() =>
-                            updateDeliveryStaffStatus(item._id, "inactive")
-                        }
-                    >
-                        <MaterialCommunityIcons
-                            name="close"
-                            size={18}
-                            color="#fff"
-                        />
-                        <Text style={styles.actionButtonText}>Deactivate</Text>
-                    </TouchableOpacity>
-                )}
-                {item.status === "inactive" && (
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.approveButton]}
-                        onPress={() =>
-                            updateDeliveryStaffStatus(item._id, "active")
-                        }
-                    >
-                        <MaterialCommunityIcons
-                            name="refresh"
-                            size={18}
-                            color="#fff"
-                        />
-                        <Text style={styles.actionButtonText}>Activate</Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-        </View>
-    );
+        );
+    };
 
     return (
         <>
@@ -510,6 +588,26 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#666",
         marginLeft: 8,
+    },
+    currentOrderCard: {
+        backgroundColor: "#F8F9FA",
+        borderRadius: 8,
+        padding: 10,
+        marginTop: 10,
+        marginBottom: 5,
+        borderWidth: 1,
+        borderColor: "#E9ECEF",
+    },
+    currentOrderTitle: {
+        fontWeight: "bold",
+        fontSize: 15,
+        color: "#212529",
+        marginBottom: 2,
+    },
+    currentOrderNumber: {
+        fontWeight: "bold",
+        color: "#6C63FF",
+        marginBottom: 2,
     },
 });
 

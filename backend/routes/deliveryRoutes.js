@@ -9,6 +9,7 @@ const {
     updateDeliveryStaffStatus,
     getAllVendors,
     registerDeliveryStaff,
+    getAllActiveDeliveryStaff,
 } = require("../controllers/deliveryStaffController");
 const { protect, checkRole } = require("../middleware/authMiddleware");
 
@@ -42,5 +43,8 @@ router.post(
     checkRole("vendor"),
     registerDeliveryStaff
 );
+
+// Add the route to get all active delivery staff
+router.get("/all-active", protect, getAllActiveDeliveryStaff);
 
 module.exports = router;

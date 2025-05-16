@@ -1,5 +1,5 @@
 // Get the IP from the environment or use a default
-const IP = "192.168.1.106"; // Same as the backend IP
+const IP = "192.168.0.101"; // Same as the backend IP
 
 // API Configuration
 export const API_URL = `http://${IP}:5000/api`;

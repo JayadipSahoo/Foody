@@ -6,6 +6,10 @@ const {
     getOrderById,
     updateOrderStatus,
     getVendorOrders,
+    assignDeliveryStaff,
+    getDeliveryOrders,
+    acceptOrder,
+    updateDeliveryOrderStatus,
 } = require("../controllers/orderController");
 const { protect, isVendor } = require("../middleware/authMiddleware");
 
@@ -13,17 +17,28 @@ const { protect, isVendor } = require("../middleware/authMiddleware");
 router.use(protect);
 
 // Routes
-router.route("/")
-    .post(createOrder)
-    .get(getOrders);
+router.route("/").post(createOrder).get(getOrders);
 
-router.route("/:id")
-    .get(getOrderById);
-
-// Update order status
-router.put("/:id/status", isVendor, updateOrderStatus);
+// Delivery staff routes - MUST BE BEFORE THE :id ROUTE TO AVOID CONFLICTS
+router.get("/delivery", getDeliveryOrders);
+router.post("/delivery/accept/:orderId", acceptOrder);
+router.put("/delivery/status/:orderId", updateDeliveryOrderStatus);
 
 // Vendor can see their orders
 router.get("/vendor/:vendorId", isVendor, getVendorOrders);
 
-module.exports = router; 
+// Get single order by ID - Put this AFTER other specific routes
+router.route("/:id").get(getOrderById);
+
+// Update order status
+router.put("/:id/status", isVendor, updateOrderStatus);
+
+// Assign delivery staff to order (vendor only)
+router.patch(
+    "/:orderId/assign-delivery",
+    protect,
+    isVendor,
+    assignDeliveryStaff
+);
+
+module.exports = router;

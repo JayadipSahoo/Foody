@@ -21,13 +21,13 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 const LoginScreen = ({ navigation }) => {
     // State for form
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [vendorCode, setVendorCode] = useState("");
     const [selectedVendorId, setSelectedVendorId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const [vendors, setVendors] = useState([]);
     const [isLoadingVendors, setIsLoadingVendors] = useState(true);
     const [error, setError] = useState("");
+    const [apiStatus, setApiStatus] = useState("");
 
     // Get login function from store
     const { loginDeliveryStaff } = useUserStore();
@@ -37,13 +37,18 @@ const LoginScreen = ({ navigation }) => {
         const fetchVendors = async () => {
             setIsLoadingVendors(true);
             try {
+                setApiStatus("Fetching vendors from API...");
                 const response = await axios.get(`${API_URL}/delivery/vendors`);
                 setVendors(response.data);
+                setApiStatus(
+                    `Loaded ${response.data.length} vendors successfully`
+                );
             } catch (error) {
                 console.error("Error fetching vendors:", error);
+                setApiStatus(`Error: ${error.message}`);
                 Alert.alert(
                     "Error",
-                    "Failed to load vendors. Please try again."
+                    `Failed to load vendors: ${error.message}`
                 );
             } finally {
                 setIsLoadingVendors(false);
@@ -56,28 +61,31 @@ const LoginScreen = ({ navigation }) => {
     // Handle login
     const handleLogin = async () => {
         // Validate form fields
-        if (!email.trim() || !password.trim() || !selectedVendorId) {
+        if (!email.trim() || !vendorCode.trim() || !selectedVendorId) {
             setError("Please fill in all fields");
             return;
         }
 
         setIsLoading(true);
         setError("");
+        setApiStatus("Attempting login...");
 
         try {
             const loginResult = await loginDeliveryStaff(
                 email,
-                password,
+                vendorCode,
                 selectedVendorId
             );
 
             if (loginResult.success) {
+                setApiStatus("Login successful, navigating to main app");
                 // Navigate to main app
                 navigation.reset({
                     index: 0,
                     routes: [{ name: "Main" }],
                 });
             } else {
+                setApiStatus(`Login failed: ${loginResult.message}`);
                 setError(
                     loginResult.message ||
                         "Login failed. Please check your credentials."
@@ -85,7 +93,8 @@ const LoginScreen = ({ navigation }) => {
             }
         } catch (error) {
             console.error("Login error:", error);
-            setError("Login failed. Please try again.");
+            setApiStatus(`Login error: ${error.message}`);
+            setError(`Login failed: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -114,6 +123,9 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.title}>Delivery Staff Login</Text>
 
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                {apiStatus ? (
+                    <Text style={styles.apiStatus}>{apiStatus}</Text>
+                ) : null}
 
                 <View style={styles.inputContainer}>
                     <MaterialCommunityIcons
@@ -134,28 +146,18 @@ const LoginScreen = ({ navigation }) => {
 
                 <View style={styles.inputContainer}>
                     <MaterialCommunityIcons
-                        name="lock-outline"
+                        name="key-outline"
                         size={20}
                         color="#666"
                         style={styles.inputIcon}
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
+                        placeholder="Vendor Code"
+                        value={vendorCode}
+                        onChangeText={setVendorCode}
+                        autoCapitalize="characters"
                     />
-                    <TouchableOpacity
-                        style={styles.passwordToggle}
-                        onPress={() => setShowPassword(!showPassword)}
-                    >
-                        <MaterialCommunityIcons
-                            name={showPassword ? "eye-off" : "eye"}
-                            size={20}
-                            color="#666"
-                        />
-                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.pickerContainer}>
@@ -259,9 +261,6 @@ const styles = StyleSheet.create({
         height: "100%",
         fontSize: 16,
     },
-    passwordToggle: {
-        padding: 5,
-    },
     pickerContainer: {
         flexDirection: "row",
         alignItems: "center",
@@ -316,6 +315,13 @@ const styles = StyleSheet.create({
         color: "#FF6B6B",
         marginBottom: 15,
         textAlign: "center",
+    },
+    apiStatus: {
+        color: "#666",
+        fontSize: 12,
+        marginBottom: 15,
+        textAlign: "center",
+        fontStyle: "italic",
     },
 });
 

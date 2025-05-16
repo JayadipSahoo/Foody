@@ -1,4 +1,4 @@
-export const API_URL = "http://192.168.1.106:5000/api";
+export const API_URL = "http://192.168.0.101:5000/api";
 
 export const THEME = {
     colors: {
@@ -34,4 +34,11 @@ export const THEME = {
         large: 12,
         full: 9999,
     },
+};
+
+export const APP_SETTINGS = {
+    LOCATION_UPDATE_INTERVAL: 10000, // Update location every 10 seconds
+    ORDER_REFRESH_INTERVAL: 15000, // Refresh orders every 15 seconds
+    DEFAULT_MAP_ZOOM: 15,
+    MAX_DELIVERY_RADIUS_KM: 15,
 };

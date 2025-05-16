@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Vendor = require("../models/Vendor");
+const DeliveryStaff = require("../models/DeliveryStaff");
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -30,14 +31,23 @@ const protect = async (req, res, next) => {
                 isVendorUser = false;
             }
 
+            // If not found in User model, check DeliveryStaff model
+            let isDeliveryStaff = false;
+            if (!user) {
+                user = await DeliveryStaff.findById(decoded.id).select(
+                    "-password"
+                );
+                isDeliveryStaff = !!user;
+            }
+
             // Set the user object and role in the request
             if (user) {
                 req.user = user;
-                // For vendors, always ensure they have the vendor role regardless of token
                 if (isVendorUser) {
                     req.role = "vendor";
+                } else if (isDeliveryStaff) {
+                    req.role = "delivery";
                 } else {
-                    // For regular users, use role from token or default to 'user'
                     req.role = decoded.role || user.role || "user";
                 }
 
@@ -46,6 +56,7 @@ const protect = async (req, res, next) => {
                     id: user._id,
                     role: req.role,
                     isVendor: isVendorUser,
+                    isDeliveryStaff,
                     modelRole: user.role,
                 });
 

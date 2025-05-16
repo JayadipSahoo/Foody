@@ -35,6 +35,7 @@ import EditMenuItem from "../screens/vendor/EditMenuItem";
 import VendorDeliveryStaffScreen from "../screens/vendor/VendorDeliveryStaffScreen";
 import AddDeliveryStaffScreen from "../screens/vendor/AddDeliveryStaffScreen";
 import DeliveryStaffOptionsScreen from "../screens/vendor/DeliveryStaffOptionsScreen";
+import DeliveryStaffOrderDetailScreen from "../screens/vendor/DeliveryStaffOrderDetailScreen";
 
 // Create navigation components
 const Stack = createNativeStackNavigator(); // For screen-to-screen navigation
@@ -218,6 +219,11 @@ const VendorStack = () => {
                 options={{
                     headerShown: false,
                 }}
+            />
+            <Stack.Screen
+                name="DeliveryStaffOrderDetail"
+                component={DeliveryStaffOrderDetailScreen}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     );

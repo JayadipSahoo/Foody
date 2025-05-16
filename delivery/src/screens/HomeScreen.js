@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import { API_URL, THEME, APP_SETTINGS } from "../config/config";
-import useUserStore from "../store/userStore";
+import { API_URL, THEME, APP_SETTINGS } from "../config/constants";
+import { useUserStore } from "../store/userStore";
 
 const HomeScreen = ({ navigation }) => {
     const [availableOrders, setAvailableOrders] = useState([]);

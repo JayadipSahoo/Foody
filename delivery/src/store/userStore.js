@@ -32,13 +32,13 @@ export const useUserStore = create((set, get) => ({
         }
     },
 
-    loginDeliveryStaff: async (email, password, vendorId) => {
+    loginDeliveryStaff: async (email, vendorCode, vendorId) => {
         try {
             set({ loading: true, error: null });
 
             const response = await axios.post(`${API_URL}/delivery/login`, {
                 email,
-                password,
+                vendorCode,
                 vendorId,
             });
 

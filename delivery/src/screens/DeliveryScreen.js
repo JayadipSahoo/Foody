@@ -13,8 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import * as Location from "expo-location";
 import MapView, { Marker } from "react-native-maps";
-import { API_URL, THEME, APP_SETTINGS } from "../config/config";
-import useUserStore from "../store/userStore";
+import { API_URL, THEME, APP_SETTINGS } from "../config/constants";
+import { useUserStore } from "../store/userStore";
 import Constants from "expo-constants";
 
 // Check if running in Expo Go
