@@ -10,6 +10,7 @@ const {
     getDeliveryOrders,
     acceptOrder,
     updateDeliveryOrderStatus,
+    updateDeliveryLocation,
 } = require("../controllers/orderController");
 const { protect, isVendor } = require("../middleware/authMiddleware");
 
@@ -23,6 +24,7 @@ router.route("/").post(createOrder).get(getOrders);
 router.get("/delivery", getDeliveryOrders);
 router.post("/delivery/accept/:orderId", acceptOrder);
 router.put("/delivery/status/:orderId", updateDeliveryOrderStatus);
+router.post("/delivery/location/:orderId", updateDeliveryLocation);
 
 // Vendor can see their orders
 router.get("/vendor/:vendorId", isVendor, getVendorOrders);

@@ -140,20 +140,58 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
         }, [fetchDeliveryStaff])
     );
 
-    // Fetch order details for all staff with a currentOrder
+    // Fetch order details for all staff with assigned orders
     useEffect(() => {
         const fetchOrders = async () => {
+            // With the new API returning populated assignedOrders, we don't need
+            // to fetch orders separately anymore. The code below is kept for
+            // backwards compatibility if the API hasn't been updated yet
             const newMap = {};
             await Promise.all(
                 deliveryStaff.map(async (staff) => {
-                    if (staff.currentOrder) {
-                        try {
-                            const order = await customerAPI.getOrderById(
-                                staff.currentOrder
-                            );
-                            newMap[staff._id] = order;
-                        } catch (e) {
-                            // ignore error
+                    if (
+                        staff.assignedOrders &&
+                        staff.assignedOrders.length > 0
+                    ) {
+                        // Check if the order objects are already populated
+                        if (
+                            staff.assignedOrders[0]._id &&
+                            typeof staff.assignedOrders[0] === "object"
+                        ) {
+                            // The orders are already populated, use them directly
+                            newMap[staff._id] = staff.assignedOrders;
+                        } else {
+                            try {
+                                // Use a more direct approach to fetch all orders at once
+                                // This will make a single API request instead of one per order
+                                const config = {
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                };
+
+                                // Get vendor ID
+                                const vendorId = vendorData?._id;
+
+                                // Get orders for this vendor - we'll filter them by delivery staff ID later
+                                const response = await axios.get(
+                                    `${API_URL}/orders/vendor/${vendorId}`,
+                                    config
+                                );
+
+                                // Filter orders that are assigned to this delivery staff
+                                const staffOrders = response.data.filter(
+                                    (order) =>
+                                        order.deliveryStaffId === staff._id
+                                );
+
+                                newMap[staff._id] = staffOrders;
+                            } catch (e) {
+                                console.error("Error fetching orders:", e);
+                                // If there's an error, set an empty array to prevent further errors
+                                newMap[staff._id] = [];
+                            }
                         }
                     }
                 })
@@ -161,11 +199,26 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
             setOrderDetailsMap(newMap);
         };
         if (deliveryStaff.length > 0) fetchOrders();
-    }, [deliveryStaff]);
+    }, [deliveryStaff, token, vendorData]);
 
     // Render delivery staff item
     const renderDeliveryStaffItem = ({ item }) => {
-        const order = orderDetailsMap[item._id];
+        // If orders are already populated in the item, use them directly
+        let orders = [];
+
+        // Check if assignedOrders are populated objects
+        if (
+            item.assignedOrders &&
+            item.assignedOrders.length > 0 &&
+            typeof item.assignedOrders[0] === "object" &&
+            item.assignedOrders[0]._id
+        ) {
+            orders = item.assignedOrders;
+        } else {
+            // Otherwise use the orders from the map
+            orders = orderDetailsMap[item._id] || [];
+        }
+
         return (
             <View style={styles.staffItem}>
                 <View style={styles.staffInfo}>
@@ -215,46 +268,80 @@ const VendorDeliveryStaffScreen = ({ navigation }) => {
                             {item.status.toUpperCase()}
                         </Text>
                     </View>
-                    {/* Show current order summary if exists */}
-                    {order && (
-                        <TouchableOpacity
-                            style={styles.currentOrderCard}
-                            onPress={() =>
-                                navigation.navigate(
-                                    "DeliveryStaffOrderDetail",
-                                    { order }
-                                )
-                            }
-                        >
-                            <Text style={styles.currentOrderTitle}>
-                                Current Order
+
+                    {/* Show assigned orders if exist */}
+                    {orders.length > 0 ? (
+                        <View style={styles.assignedOrdersContainer}>
+                            <Text style={styles.assignedOrdersTitle}>
+                                Assigned Orders ({orders.length})
                             </Text>
-                            <Text style={styles.currentOrderNumber}>
-                                Order #{order._id.slice(-6)}
-                            </Text>
-                            <Text>
-                                Status:{" "}
-                                <Text
-                                    style={{
-                                        color: "#FF9F6A",
-                                        fontWeight: "bold",
-                                    }}
+                            {orders.map((order, index) => (
+                                <TouchableOpacity
+                                    key={order._id || index}
+                                    style={styles.currentOrderCard}
+                                    onPress={() =>
+                                        navigation.navigate(
+                                            "DeliveryStaffOrderDetail",
+                                            { order }
+                                        )
+                                    }
                                 >
-                                    {order.status}
-                                </Text>
+                                    <Text style={styles.currentOrderNumber}>
+                                        Order #
+                                        {order._id
+                                            ? order._id.slice(-6)
+                                            : "unknown"}
+                                    </Text>
+                                    <Text>
+                                        Status:{" "}
+                                        <Text
+                                            style={{
+                                                color: "#FF9F6A",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            {order.status}
+                                        </Text>
+                                    </Text>
+                                    <Text>
+                                        Customer:{" "}
+                                        {order.customerId?.name || "N/A"}
+                                    </Text>
+                                    <Text
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        Items:{" "}
+                                        {order.items &&
+                                            order.items
+                                                .map(
+                                                    (i) =>
+                                                        i.name +
+                                                        " x" +
+                                                        i.quantity
+                                                )
+                                                .join(", ")}
+                                    </Text>
+                                    <Text>
+                                        Total: ₹
+                                        {order.totalAmount
+                                            ? order.totalAmount.toFixed(2)
+                                            : "0.00"}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    ) : item.assignedOrders &&
+                      item.assignedOrders.length > 0 ? (
+                        <View style={styles.assignedOrdersContainer}>
+                            <Text style={styles.assignedOrdersTitle}>
+                                Assigned Orders ({item.assignedOrders.length})
                             </Text>
-                            <Text>
-                                Customer: {order.customerId?.name || "N/A"}
+                            <Text style={styles.loadingText}>
+                                Loading order details...
                             </Text>
-                            <Text>
-                                Items:{" "}
-                                {order.items
-                                    .map((i) => i.name + " x" + i.quantity)
-                                    .join(", ")}
-                            </Text>
-                            <Text>Total: ₹{order.totalAmount.toFixed(2)}</Text>
-                        </TouchableOpacity>
-                    )}
+                        </View>
+                    ) : null}
                 </View>
                 <View style={styles.actionsContainer}>
                     {item.status === "pending" && (
@@ -590,13 +677,17 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     currentOrderCard: {
-        backgroundColor: "#F8F9FA",
-        borderRadius: 8,
+        backgroundColor: "#fff",
         padding: 10,
-        marginTop: 10,
-        marginBottom: 5,
-        borderWidth: 1,
-        borderColor: "#E9ECEF",
+        borderRadius: 6,
+        marginVertical: 5,
+        borderLeftWidth: 3,
+        borderLeftColor: "#FF9F6A",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.18,
+        shadowRadius: 1.0,
+        elevation: 1,
     },
     currentOrderTitle: {
         fontWeight: "bold",
@@ -608,6 +699,22 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#6C63FF",
         marginBottom: 2,
+    },
+    assignedOrdersContainer: {
+        marginTop: 10,
+    },
+    assignedOrdersTitle: {
+        fontWeight: "bold",
+        fontSize: 15,
+        color: "#333",
+        marginBottom: 5,
+    },
+    loadingText: {
+        fontSize: 14,
+        color: "#666",
+        fontStyle: "italic",
+        textAlign: "center",
+        marginVertical: 10,
     },
 });
 

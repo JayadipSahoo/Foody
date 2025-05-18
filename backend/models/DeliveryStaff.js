@@ -53,11 +53,12 @@ const deliveryStaffSchema = new mongoose.Schema(
             enum: ["active", "inactive", "pending"],
             default: "pending",
         },
-        currentOrder: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Order",
-            default: null,
-        },
+        assignedOrders: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Order",
+            },
+        ],
     },
     {
         timestamps: true,

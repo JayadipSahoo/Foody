@@ -241,8 +241,16 @@ const getVendorDeliveryStaff = async (req, res) => {
 
         const deliveryStaff = await DeliveryStaff.find({
             vendorId: req.params.vendorId,
-            status: "active",
-        }).select("-password");
+        })
+            .select("-password")
+            .populate({
+                path: "assignedOrders",
+                select: "_id customerId items totalAmount status createdAt",
+                populate: {
+                    path: "customerId",
+                    select: "name email mobile",
+                },
+            });
 
         res.status(200).json(deliveryStaff);
     } catch (error) {

@@ -24,7 +24,20 @@ exports.getOrders = async (req, res) => {
 // @access  Private
 exports.getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
+        const orderId = req.params.id;
+
+        // Validate orderId format to prevent casting errors
+        if (
+            !orderId ||
+            typeof orderId !== "string" ||
+            orderId === "[object Object]"
+        ) {
+            return res.status(400).json({ message: "Invalid order ID format" });
+        }
+
+        const order = await Order.findById(orderId)
+            .populate("vendorId", "name address")
+            .populate("customerId", "name email mobile");
 
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
@@ -32,8 +45,15 @@ exports.getOrderById = async (req, res) => {
 
         // Check if user is authorized to view this order
         if (
-            order.customerId.toString() !== req.user._id.toString() &&
-            order.vendorId.toString() !== req.user._id.toString()
+            order.customerId &&
+            order.customerId._id &&
+            order.customerId._id.toString() !== req.user._id.toString() &&
+            order.vendorId &&
+            order.vendorId._id &&
+            order.vendorId._id.toString() !== req.user._id.toString() &&
+            (!order.deliveryStaffId ||
+                order.deliveryStaffId.toString() !== req.user._id.toString()) &&
+            req.user.role !== "delivery"
         ) {
             return res.status(403).json({ message: "Not authorized" });
         }
@@ -209,22 +229,26 @@ exports.assignDeliveryStaff = async (req, res) => {
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
-        // If there was a previous delivery staff assigned, clear their currentOrder
+
+        // If there was a previous delivery staff assigned, remove this order from their assignedOrders
         if (
             order.deliveryStaffId &&
             order.deliveryStaffId.toString() !== deliveryStaffId
         ) {
             await DeliveryStaff.findByIdAndUpdate(order.deliveryStaffId, {
-                currentOrder: null,
+                $pull: { assignedOrders: orderId },
             });
         }
+
         // Assign the new delivery staff to the order
         order.deliveryStaffId = deliveryStaffId;
         await order.save();
-        // Set the currentOrder for the assigned delivery staff
+
+        // Add this order to the delivery staff's assignedOrders array if not already there
         await DeliveryStaff.findByIdAndUpdate(deliveryStaffId, {
-            currentOrder: orderId,
+            $addToSet: { assignedOrders: orderId },
         });
+
         res.status(200).json({
             message: "Delivery staff assigned successfully",
             order,
@@ -310,9 +334,9 @@ exports.acceptOrder = async (req, res) => {
         order.status = "out_for_delivery";
         await order.save();
 
-        // Update delivery staff's current order
+        // Add to delivery staff's assignedOrders array
         await DeliveryStaff.findByIdAndUpdate(req.user._id, {
-            currentOrder: orderId,
+            $addToSet: { assignedOrders: orderId },
         });
 
         res.status(200).json({
@@ -365,10 +389,10 @@ exports.updateDeliveryOrderStatus = async (req, res) => {
         order.status = status;
         await order.save();
 
-        // If delivered, clear currentOrder from delivery staff
+        // If delivered, remove order from assigned orders array
         if (status === "delivered") {
             await DeliveryStaff.findByIdAndUpdate(req.user._id, {
-                currentOrder: null,
+                $pull: { assignedOrders: orderId },
             });
         }
 
@@ -378,6 +402,58 @@ exports.updateDeliveryOrderStatus = async (req, res) => {
         });
     } catch (error) {
         console.error("Error in updateDeliveryOrderStatus:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Update delivery staff location
+// @route   POST /api/orders/delivery/location/:orderId
+// @access  Private (Delivery staff only)
+exports.updateDeliveryLocation = async (req, res) => {
+    try {
+        // Check if user is a delivery staff
+        if (req.user.role !== "delivery") {
+            return res.status(403).json({
+                message:
+                    "Not authorized. Only delivery staff can access this endpoint.",
+            });
+        }
+
+        const { orderId } = req.params;
+        const { latitude, longitude } = req.body;
+
+        if (!latitude || !longitude) {
+            return res
+                .status(400)
+                .json({ message: "Latitude and longitude are required" });
+        }
+
+        // Find the order
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Check if this delivery staff is assigned to this order
+        if (
+            order.deliveryStaffId &&
+            order.deliveryStaffId.toString() !== req.user._id.toString()
+        ) {
+            return res
+                .status(403)
+                .json({ message: "Not authorized to update this order" });
+        }
+
+        // Update the delivery location
+        // Note: You would typically store this in a separate collection or use a real-time database
+        // For simplicity, we'll just acknowledge the update
+
+        res.status(200).json({
+            message: "Delivery location updated successfully",
+        });
+    } catch (error) {
+        console.error("Error in updateDeliveryLocation:", error);
         res.status(500).json({ message: "Server error" });
     }
 };

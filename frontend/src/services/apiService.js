@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL configuration
 export const getBaseUrl = () => {
-    return "http://192.168.0.101:5000/api";
+    return "http://192.168.1.114:5000/api";
 };
 
 // Debug flag for API requests - set to false for real API calls
@@ -369,15 +369,23 @@ export const customerAPI = {
         }
     },
 
-    getOrderById: async (id) => {
-        try {
-            const response = await api.get(`/orders/${id}`);
-            return response.data;
-        } catch (error) {
-            console.error(`Error fetching order ${id}:`, error);
-            throw error;
-        }
-    },
+    // getOrderById: async (id) => {
+    //     try {
+    //         console.log("API: Fetching order by ID:", id);
+    //         // Validate ID format to prevent sending invalid requests
+    //         if (!id || id === "[object Object]" || typeof id !== "string") {
+    //             console.error(`Invalid order ID format: ${id}`);
+    //             return null;
+    //         }
+
+    //         const response = await api.get(`/orders/${id}`);
+    //         return response.data;
+    //     } catch (error) {
+    //         console.error(`Error fetching order ${id}:`, error);
+    //         // Return null instead of throwing to prevent crashing the UI
+    //         return null;
+    //     }
+    // },
 
     createOrder: async (orderData) => {
         try {

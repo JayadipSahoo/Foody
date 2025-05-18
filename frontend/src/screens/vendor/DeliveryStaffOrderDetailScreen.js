@@ -5,6 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -39,6 +40,12 @@ const DeliveryStaffOrderDetailScreen = ({ route, navigation }) => {
                 return "#6C63FF";
             case "ready":
                 return "#4CAF50";
+            case "out_for_delivery":
+                return "#FF9F6A";
+            case "picked_up":
+                return "#FF9F6A";
+            case "on_the_way":
+                return "#FF9F6A";
             case "delivered":
                 return "#009688";
             case "cancelled":
@@ -75,7 +82,7 @@ const DeliveryStaffOrderDetailScreen = ({ route, navigation }) => {
                             { color: getStatusColor(order.status) },
                         ]}
                     >
-                        Status: {order.status}
+                        Status: {order.status.replace(/_/g, " ")}
                     </Text>
                     <Text style={styles.label}>
                         Placed on:{" "}
@@ -156,6 +163,16 @@ const DeliveryStaffOrderDetailScreen = ({ route, navigation }) => {
                             </Text>
                         </View>
                     </View>
+                    {order.deliveryAddress && (
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>
+                                Delivery Address
+                            </Text>
+                            <Text style={styles.deliveryAddressText}>
+                                {order.deliveryAddress}
+                            </Text>
+                        </View>
+                    )}
                     <View style={styles.totalSection}>
                         <Text style={styles.totalLabel}>Total</Text>
                         <Text style={styles.totalAmount}>
@@ -229,6 +246,11 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: "#E9ECEF",
         marginTop: 10,
+    },
+    deliveryAddressText: {
+        fontSize: 14,
+        color: "#6C757D",
+        lineHeight: 20,
     },
     totalLabel: { fontSize: 16, fontWeight: "bold", color: "#212529" },
     totalAmount: { fontSize: 20, fontWeight: "bold", color: THEME_COLOR },
