@@ -1,7 +1,7 @@
 const Order = require("../models/Order");
 const Menu = require("../models/MenuItem");
 const hashItemSnapshot = require("../utils/hashItemSnapshot");
-const { mockProcessPayment } = require("../services/paymentService");
+const razorpayService = require('../services/razorpayService');
 
 // @desc    Get all orders for a customer
 // @route   GET /api/orders
@@ -51,6 +51,11 @@ exports.createOrder = async (req, res) => {
         
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ message: "No items in order" });
+        }
+        
+        // Validate payment method
+        if (!paymentMethod || !['razorpay', 'cod'].includes(paymentMethod)) {
+            return res.status(400).json({ message: "Invalid payment method. Please choose razorpay or cod." });
         }
         
         let totalAmount = 0;
@@ -148,27 +153,30 @@ exports.createOrder = async (req, res) => {
             }
         }
         
-        // If no valid items, return error
-        if (orderItems.length === 0) {
+        // If any items are invalid, reject the entire order
+        if (invalidItems.length > 0) {
             return res.status(400).json({ 
-                message: "No valid items in order", 
-                details: invalidItems
+                message: "Menu for this restaurant was updated. Please refresh your cart.",
+                invalidItems,
+                shouldEmptyCart: true
             });
         }
         
-        // If some items were invalid but others were valid, continue with valid ones
-        if (invalidItems.length > 0) {
-            console.log(`Warning: ${invalidItems.length} invalid items were removed from the order`);
+        // If no valid items, return error
+        if (orderItems.length === 0) {
+            return res.status(400).json({ 
+                message: "No valid items in order"
+            });
         }
         
-        // Mock payment
-        const paymentInfo = await mockProcessPayment({ amount: totalAmount, method: paymentMethod });
-        if (!paymentInfo || !paymentInfo.success) {
-            return res.status(402).json({ message: "Payment failed", paymentInfo });
+        // Create Razorpay order if payment method is razorpay
+        let razorpayOrder = null;
+        if (paymentMethod === 'razorpay') {
+            razorpayOrder = await razorpayService.createRazorpayOrder(totalAmount);
         }
         
-        // Create order
-        const order = await Order.create({
+        // Create order in database
+        const orderData = {
             customerId: req.user._id,
             vendorId,
             items: orderItems,
@@ -176,15 +184,33 @@ exports.createOrder = async (req, res) => {
             deliveryAddress,
             paymentMethod,
             specialInstructions,
-            status: "pending",
-            paymentStatus: "completed"
-        });
+            status: paymentMethod === 'cod' ? 'pending' : 'payment-pending',
+            paymentInfo: {
+                paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending'
+            }
+        };
         
-        res.status(201).json({ 
-            order, 
-            paymentInfo,
-            removedItems: invalidItems.length > 0 ? invalidItems : undefined
-        });
+        // Add Razorpay order ID if it exists
+        if (razorpayOrder) {
+            orderData.paymentInfo.razorpayOrderId = razorpayOrder.id;
+        }
+        
+        const order = await Order.create(orderData);
+        
+        const response = {
+            order
+        };
+        
+        // Add Razorpay details to response if needed
+        if (razorpayOrder) {
+            response.razorpayOrder = {
+                id: razorpayOrder.id,
+                amount: razorpayOrder.amount,
+                currency: razorpayOrder.currency
+            };
+        }
+        
+        res.status(201).json(response);
     } catch (error) {
         console.error("Error in createOrder:", error);
         res.status(500).json({ message: "Server error" });
@@ -261,4 +287,59 @@ exports.updateOrderStatus = async (req, res) => {
         console.error("Error in updateOrderStatus:", error);
         res.status(500).json({ message: "Server error" });
     }
+};
+
+// @desc    Verify Razorpay payment
+// @route   POST /api/orders/verify-payment
+// @access  Private
+exports.verifyPayment = async (req, res) => {
+    try {
+        const { razorpayOrderId, razorpayPaymentId, razorpayPaymentSignature } = req.body;
+        
+        // Find the order
+        const order = await Order.findOne({ 'paymentInfo.razorpayOrderId': razorpayOrderId });
+        
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+        
+        // Check if user is authorized to verify this payment
+        if (order.customerId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: "Not authorized" });
+        }
+        
+        // Verify signature
+        const isValid = razorpayService.verifyPaymentSignature(
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpayPaymentSignature
+        );
+        
+        if (!isValid) {
+            return res.status(400).json({ message: "Invalid payment signature" });
+        }
+        
+        // Update order
+        order.paymentInfo.razorpayPaymentId = razorpayPaymentId;
+        order.paymentInfo.razorpayPaymentSignature = razorpayPaymentSignature;
+        order.status = "pending"; // Change from payment-pending to pending
+        order.paymentInfo.paymentStatus = "completed";
+        
+        await order.save();
+        
+        res.status(200).json({ order });
+    } catch (error) {
+        console.error("Error in verifyPayment:", error);
+        res.status(500).json({ message: "Server error" });
+    }
 }; 
+
+exports.getRazorpayKey = async (req, res) => {
+    try {
+        const key = process.env.RAZORPAY_KEY_ID;
+        res.status(200).json({ key });
+    } catch (error) {
+        console.error("Error in getRazorpayKey:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};

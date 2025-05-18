@@ -42,8 +42,8 @@ const orderSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["pending", "accepted", "preparing", "ready", "delivered", "cancelled"],
-            default: "pending"
+            enum: ["payment-pending", "pending", "accepted", "preparing", "ready", "delivered", "cancelled"],
+            default: "payment-pending"
         },
         deliveryAddress: {
             street: String,
@@ -54,13 +54,27 @@ const orderSchema = new mongoose.Schema(
         },
         paymentMethod: {
             type: String,
-            enum: ["cash", "card", "upi"],
+            enum: ["razorpay", "cod"],
             required: true
         },
-        paymentStatus: {
-            type: String,
-            enum: ["pending", "completed", "failed"],
-            default: "pending"
+        paymentInfo: {
+            paymentStatus: {
+                type: String,
+                enum: ["pending", "completed", "failed", "refunded"],
+                default: "pending"
+            },
+            razorpayOrderId: {
+                type: String,
+                default: null
+            },
+            razorpayPaymentId: {
+                type: String,
+                default: null
+            },
+            razorpayPaymentSignature: {
+                type: String,
+                default: null
+            }
         },
         specialInstructions: {
             type: String,
@@ -76,6 +90,7 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ vendorId: 1, createdAt: -1 });
 orderSchema.index({ status: 1 });
+orderSchema.index({ razorpayOrderId: 1 });
 
 const Order = mongoose.model("Order", orderSchema);
 

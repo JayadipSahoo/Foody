@@ -331,6 +331,16 @@ api.interceptors.response.use(
 // Customer API service
 export const customerAPI = {
 
+    getRazorpayKey: async () => {
+        try {
+            const response = await api.get('/orders/razorpay/key');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching Razorpay key:', error);
+            throw error;
+        }
+    },
+
     getOrderById: async (id) => {
         try {
             const response = await api.get(`/orders/${id}`);
@@ -351,6 +361,16 @@ export const customerAPI = {
         }
     },
 
+    verifyPayment: async (paymentData) => {
+        try {
+            const response = await api.post('/orders/verify-payment', paymentData);
+            return response.data;
+        } catch (error) {
+            console.error('Error verifying payment:', error);
+            throw error;
+        }
+    },
+    
     // Get all orders made by the current user
     getCustomerOrders: async () => {
         try {
@@ -364,7 +384,6 @@ export const customerAPI = {
             if (!userId) {
                 throw new Error('No user ID found in user data');
             }
-            console.log("Hello from getCustomerOrders", userId);
             const response = await api.get(`/orders/customer/${userId}`);
             return response.data;
         } catch (error) {

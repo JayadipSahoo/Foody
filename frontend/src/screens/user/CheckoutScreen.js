@@ -6,17 +6,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../../context/CartContext';
 import useUserStore from '../../store/userStore';
-import api from "../../services/apiService";
+import api, { customerAPI } from "../../services/apiService";
 import hashItemSnapshot from '../../utils/hashItemSnapshot';
-
-const paymentOptions = [
-  { key: 'upi', label: 'UPI' },
-  { key: 'card', label: 'Credit/Debit Card' },
-  { key: 'cod', label: 'Cash on Delivery' },
-];
+import RazorpayCheckout from 'react-native-razorpay';
 
 // Theme color
 const THEME_COLOR = '#fda535';
+
+// Payment options array
+const paymentOptions = [
+  { key: 'razorpay', label: 'Pay Online (Razorpay)' },
+  { key: 'cod', label: 'Cash on Delivery' }
+];
 
 // Component for individual cart item in the order summary
 const CartItemRow = ({ item, onIncrease, onDecrease }) => (
@@ -59,6 +60,8 @@ const CheckoutScreen = () => {
   const [instructions, setInstructions] = useState('');
   const [showInstructionsInput, setShowInstructionsInput] = useState(false);
   const [total, setTotal] = useState(0);
+  const [razorpayOrderId, setRazorpayOrderId] = useState(null);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   
   // Get restaurant name from CartContext if available, or from route params
   const restaurantName = cartRestaurant?.name || route.params?.restaurant?.name || "Restaurant";
@@ -76,6 +79,8 @@ const CheckoutScreen = () => {
     }
   
     try {
+      setIsPaymentProcessing(true);
+      
       // Construct item payload with ID, quantity, and version hash
       const items = cartItems.map(item => {
         const itemSnapshot = {
@@ -102,29 +107,77 @@ const CheckoutScreen = () => {
         items,
         vendorId: cartRestaurant?.id || cartRestaurant?._id,
         deliveryAddress: lastOrderedLocation,
-        paymentMethod,
+        paymentMethod: paymentMethod,
         specialInstructions: instructions.trim()
       };
 
       // Order Payload for Debugging
       console.log("Placing Order : ", orderPayload);
   
-      const response = await api.post("/orders", orderPayload);
-  
-      Alert.alert('Order Placed Successfully', 'Your food is being prepared!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            clearCart();
-            navigation.navigate('CustomerTabs', { screen: 'Home' });
-          }
+      // Use customerAPI.createOrder instead of direct API call
+      const response = await customerAPI.createOrder(orderPayload);
+      console.log("Order created:", response);
+      
+      if (paymentMethod === 'razorpay') {
+        // Handle Razorpay payment
+        try {
+          // Get Razorpay key
+          const keyResponse = await customerAPI.getRazorpayKey();
+          const key = keyResponse.key;
+          
+          const options = {
+            description: 'Food Order Payment',
+            image: 'frontend/assets/design-a-logo-for-a-food-delivery-company-named-me (2).png',
+            currency: 'INR',
+            key: key,
+            amount: getCartTotal() * 100,
+            name: 'Meshi',
+            order_id: response.razorpayOrder.id,
+            prefill: {
+              email: 'user@example.com',
+              contact: '9876543210',
+              name: 'User Name'
+            },
+            theme: { color: THEME_COLOR }
+          };
+          
+          const data = await RazorpayCheckout.open(options);
+          
+          // Verify payment with backend
+          const verifyPayload = {
+            razorpayOrderId: response.razorpayOrder.id,
+            razorpayPaymentId: data.razorpay_payment_id,
+            razorpayPaymentSignature: data.razorpay_signature
+          };
+          
+          await customerAPI.verifyPayment(verifyPayload);
+          
+          // Payment successful
+          Alert.alert('Payment Successful', 'Your order has been placed successfully!');
+          clearCart();
+          navigation.navigate('CustomerTabs', { screen: 'Orders' });
+        } catch (paymentError) {
+          console.error('Razorpay payment error:', paymentError);
+          Alert.alert('Payment Failed', 'There was an issue processing your payment. Please try again.');
         }
-      ]);
+      } else if (paymentMethod === 'cod') {
+        // COD order success
+        Alert.alert('Order Placed Successfully', 'Your food is being prepared and will be delivered soon!', [
+          {
+            text: 'OK',
+            onPress: () => {
+              clearCart();
+              navigation.navigate('CustomerTabs', { screen: 'Orders' });
+            }
+          }
+        ]);
+      }
     } catch (error) {
-      if (error.response?.status === 409) {
+      console.error('Order creation error:', error);
+      if (error.response?.data?.shouldEmptyCart) {
         Alert.alert(
           'Menu Updated',
-          'Some items have changed since you added them. Please review your cart again.',
+          'The menu for this restaurant was updated. Please refresh your cart.',
           [
             {
               text: 'Go Back',
@@ -136,8 +189,10 @@ const CheckoutScreen = () => {
           ]
         );
       } else {
-        Alert.alert('Order Failed', 'Something went wrong. Please try again.');
+        Alert.alert('Order Failed', error.response?.data?.message || 'Something went wrong. Please try again.');
       }
+    } finally {
+      setIsPaymentProcessing(false);
     }
   };
 
