@@ -9,7 +9,7 @@ import useAuthStore from "../store/authStore";
 import CheckoutScreen from '../screens/user/CheckoutScreen';
 
 // Define our theme color
-const THEME_COLOR = '#fda535'; // Updated theme color
+const THEME_COLOR = "#FDA535"; // Updated theme color
 
 // Authentication screens
 import LoginScreen from "../screens/LoginScreen";
@@ -25,13 +25,17 @@ import NotificationsScreen from "../screens/user/NotificationsScreen";
 import UserOrdersScreen from "../screens/user/UserOrdersScreen";
 
 // Vendor screens
-import VendorDashboardScreen from '../screens/vendor/VendorDashboardScreen';
-import VendorOrdersScreen from '../screens/vendor/VendorOrdersScreen';
-import VendorMenuScreen from '../screens/vendor/VendorMenuScreen';
-import VendorScheduleScreen from '../screens/vendor/VendorScheduleScreen';
-import VendorMenuScheduleScreen from '../screens/vendor/VendorMenuScheduleScreen';
-import VendorScheduleDetailScreen from '../screens/vendor/VendorScheduleDetailScreen';
-import EditMenuItem from '../screens/vendor/EditMenuItem';
+import VendorDashboardScreen from "../screens/vendor/VendorDashboardScreen";
+import VendorOrdersScreen from "../screens/vendor/VendorOrdersScreen";
+import VendorMenuScreen from "../screens/vendor/VendorMenuScreen";
+import VendorScheduleScreen from "../screens/vendor/VendorScheduleScreen";
+import VendorMenuScheduleScreen from "../screens/vendor/VendorMenuScheduleScreen";
+import VendorScheduleDetailScreen from "../screens/vendor/VendorScheduleDetailScreen";
+import EditMenuItem from "../screens/vendor/EditMenuItem";
+import VendorDeliveryStaffScreen from "../screens/vendor/VendorDeliveryStaffScreen";
+import AddDeliveryStaffScreen from "../screens/vendor/AddDeliveryStaffScreen";
+import DeliveryStaffOptionsScreen from "../screens/vendor/DeliveryStaffOptionsScreen";
+import DeliveryStaffOrderDetailScreen from "../screens/vendor/DeliveryStaffOrderDetailScreen";
 
 // Create navigation components
 const Stack = createNativeStackNavigator(); // For screen-to-screen navigation
@@ -53,21 +57,23 @@ const CustomerTab = () => {
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';
                     }
-                    return <Ionicons name={iconName} size={size} color={color} />;
+                    return (
+                        <Ionicons name={iconName} size={size} color={color} />
+                    );
                 },
                 tabBarActiveTintColor: THEME_COLOR,
-                tabBarInactiveTintColor: 'gray',
+                tabBarInactiveTintColor: "gray",
                 tabBarStyle: {
                     height: 60,
-                    paddingBottom: 5
+                    paddingBottom: 5,
                 },
             })}
         >
-            <Tab.Screen 
-                name="Home" 
-                component={HomeScreen} 
-                options={{ 
-                    headerShown: false
+            <Tab.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{
+                    headerShown: false,
                 }}
             />
             <Tab.Screen 
@@ -77,18 +83,18 @@ const CustomerTab = () => {
                     headerShown: false
                 }}
             />
-            <Tab.Screen 
-                name="Notifications" 
-                component={NotificationsScreen} 
-                options={{ 
-                    headerShown: false
+            <Tab.Screen
+                name="Notifications"
+                component={NotificationsScreen}
+                options={{
+                    headerShown: false,
                 }}
             />
-            <Tab.Screen 
-                name="Profile" 
-                component={ProfileScreen} 
-                options={{ 
-                    headerShown: false
+            <Tab.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{
+                    headerShown: false,
                 }}
             />
         </Tab.Navigator>
@@ -116,36 +122,38 @@ function VendorTabNavigator() {
                         iconName = focused ? 'person' : 'person-outline';
                     }
 
-                    return <Ionicons name={iconName} size={size} color={color} />;
+                    return (
+                        <Ionicons name={iconName} size={size} color={color} />
+                    );
                 },
                 tabBarActiveTintColor: THEME_COLOR, // Updated theme color
-                tabBarInactiveTintColor: 'gray',
+                tabBarInactiveTintColor: "gray",
                 headerShown: false,
             })}
         >
-            <Tab.Screen 
-                name="Dashboard" 
-                component={VendorDashboardScreen} 
+            <Tab.Screen
+                name="Dashboard"
+                component={VendorDashboardScreen}
                 options={{ headerShown: false }}
             />
-            <Tab.Screen 
-                name="Orders" 
-                component={VendorOrdersScreen} 
+            <Tab.Screen
+                name="Orders"
+                component={VendorOrdersScreen}
                 options={{ headerShown: false }}
             />
-            <Tab.Screen 
-                name="Menu" 
-                component={VendorMenuScreen} 
+            <Tab.Screen
+                name="Menu"
+                component={VendorMenuScreen}
                 options={{ headerShown: false }}
             />
-            <Tab.Screen 
-                name="Schedule" 
-                component={VendorScheduleScreen} 
+            <Tab.Screen
+                name="Schedule"
+                component={VendorScheduleScreen}
                 options={{ headerShown: false }}
             />
-            <Tab.Screen 
-                name="Profile" 
-                component={ProfileScreen} 
+            <Tab.Screen
+                name="Profile"
+                component={ProfileScreen}
                 options={{ headerShown: false }}
             />
         </Tab.Navigator>
@@ -187,11 +195,31 @@ const VendorStack = () => {
                 options={{ headerShown: false }}
             />
             <Stack.Screen
+                name="DeliveryStaffOptionsScreen"
+                component={DeliveryStaffOptionsScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="VendorDeliveryStaffScreen"
+                component={VendorDeliveryStaffScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="AddDeliveryStaffScreen"
+                component={AddDeliveryStaffScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
                 name="EditMenuItem"
                 component={EditMenuItem}
-                options={{ 
-                    headerShown: false
+                options={{
+                    headerShown: false,
                 }}
+            />
+            <Stack.Screen
+                name="DeliveryStaffOrderDetail"
+                component={DeliveryStaffOrderDetailScreen}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     );
@@ -246,23 +274,25 @@ const AppNavigator = () => {
             // Authenticated navigator
             return (
                 <Stack.Navigator initialRouteName="Main">
-                    <Stack.Screen 
-                        name="Main" 
-                        component={userType === 'vendor' ? VendorStack : CustomerStack}
+                    <Stack.Screen
+                        name="Main"
+                        component={
+                            userType === "vendor" ? VendorStack : CustomerStack
+                        }
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="RestaurantDetails" 
+                    <Stack.Screen
+                        name="RestaurantDetails"
                         component={RestaurantDetailsScreen}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="Notifications" 
+                    <Stack.Screen
+                        name="Notifications"
                         component={NotificationsScreen}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="Profile" 
+                    <Stack.Screen
+                        name="Profile"
                         component={ProfileScreen}
                         options={{ headerShown: false }}
                     />
@@ -272,23 +302,23 @@ const AppNavigator = () => {
             // Unauthenticated navigator
             return (
                 <Stack.Navigator initialRouteName="Splash">
-                    <Stack.Screen 
-                        name="Splash" 
+                    <Stack.Screen
+                        name="Splash"
                         component={SplashScreen}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="Welcome" 
+                    <Stack.Screen
+                        name="Welcome"
                         component={WelcomeScreen}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="Login" 
+                    <Stack.Screen
+                        name="Login"
                         component={LoginScreen}
                         options={{ headerShown: false }}
                     />
-                    <Stack.Screen 
-                        name="Signup" 
+                    <Stack.Screen
+                        name="Signup"
                         component={SignupScreen}
                         options={{ headerShown: false }}
                     />
@@ -309,8 +339,8 @@ const AppNavigator = () => {
 const styles = StyleSheet.create({
     loadingContainer: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
     },
 });
 

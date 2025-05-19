@@ -2,6 +2,7 @@ const Order = require("../models/Order");
 const Menu = require("../models/MenuItem");
 const hashItemSnapshot = require("../utils/hashItemSnapshot");
 const razorpayService = require('../services/razorpayService');
+const DeliveryStaff = require("../models/DeliveryStaff");
 
 // @desc    Get all orders for a customer
 // @route   GET /api/orders
@@ -23,15 +24,37 @@ exports.getCustomerOrders = async (req, res) => {
 // @access  Private
 exports.getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
-        
+        const orderId = req.params.id;
+
+        // Validate orderId format to prevent casting errors
+        if (
+            !orderId ||
+            typeof orderId !== "string" ||
+            orderId === "[object Object]"
+        ) {
+            return res.status(400).json({ message: "Invalid order ID format" });
+        }
+
+        const order = await Order.findById(orderId)
+            .populate("vendorId", "name address")
+            .populate("customerId", "name email mobile");
+
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
 
         // Check if user is authorized to view this order
-        if (order.customerId.toString() !== req.user._id.toString() && 
-            order.vendorId.toString() !== req.user._id.toString()) {
+        if (
+            order.customerId &&
+            order.customerId._id &&
+            order.customerId._id.toString() !== req.user._id.toString() &&
+            order.vendorId &&
+            order.vendorId._id &&
+            order.vendorId._id.toString() !== req.user._id.toString() &&
+            (!order.deliveryStaffId ||
+                order.deliveryStaffId.toString() !== req.user._id.toString()) &&
+            req.user.role !== "delivery"
+        ) {
             return res.status(403).json({ message: "Not authorized" });
         }
 
@@ -47,8 +70,13 @@ exports.getOrderById = async (req, res) => {
 // @access  Private
 exports.createOrder = async (req, res) => {
     try {
-        const { items, vendorId, deliveryAddress, paymentMethod, specialInstructions } = req.body;
-        
+        const {
+            items,
+            vendorId,
+            deliveryAddress,
+            paymentMethod,
+            specialInstructions,
+        } = req.body;
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ message: "No items in order" });
         }
@@ -224,30 +252,30 @@ exports.getVendorOrders = async (req, res) => {
     try {
         // Check if user is authenticated
         if (!req.user || !req.user._id) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 message: "Not authorized, user ID not found",
-                debug: { 
+                debug: {
                     hasUser: !!req.user,
-                    params: req.params
-                }
+                    params: req.params,
+                },
             });
         }
 
         // Ensure the vendor is requesting their own orders
         if (req.params.vendorId !== req.user._id.toString()) {
-            return res.status(403).json({ 
+            return res.status(403).json({
                 message: "Not authorized to access these orders",
                 debug: {
                     requestedVendor: req.params.vendorId,
-                    userVendor: req.user._id.toString()
-                }
+                    userVendor: req.user._id.toString(),
+                },
             });
         }
 
         const orders = await Order.find({ vendorId: req.params.vendorId })
-            .populate('customerId', 'name email mobile')
+            .populate("customerId", "name email mobile")
             .sort({ createdAt: -1 });
-        
+
         res.status(200).json(orders);
     } catch (error) {
         console.error("Error in getVendorOrders:", error);
@@ -263,7 +291,14 @@ exports.updateOrderStatus = async (req, res) => {
         const { status } = req.body;
 
         // Validate status
-        const validStatuses = ["pending", "accepted", "preparing", "ready", "delivered", "cancelled"];
+        const validStatuses = [
+            "pending",
+            "accepted",
+            "preparing",
+            "ready",
+            "delivered",
+            "cancelled",
+        ];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: "Invalid status" });
         }
@@ -287,6 +322,251 @@ exports.updateOrderStatus = async (req, res) => {
         console.error("Error in updateOrderStatus:", error);
         res.status(500).json({ message: "Server error" });
     }
+};
+
+// Assign a delivery staff to an order
+exports.assignDeliveryStaff = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { deliveryStaffId } = req.body;
+        if (!deliveryStaffId) {
+            return res
+                .status(400)
+                .json({ message: "deliveryStaffId is required" });
+        }
+        const order = await Order.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // If there was a previous delivery staff assigned, remove this order from their assignedOrders
+        if (
+            order.deliveryStaffId &&
+            order.deliveryStaffId.toString() !== deliveryStaffId
+        ) {
+            await DeliveryStaff.findByIdAndUpdate(order.deliveryStaffId, {
+                $pull: { assignedOrders: orderId },
+            });
+        }
+
+        // Assign the new delivery staff to the order
+        order.deliveryStaffId = deliveryStaffId;
+        await order.save();
+
+        // Add this order to the delivery staff's assignedOrders array if not already there
+        await DeliveryStaff.findByIdAndUpdate(deliveryStaffId, {
+            $addToSet: { assignedOrders: orderId },
+        });
+
+        res.status(200).json({
+            message: "Delivery staff assigned successfully",
+            order,
+        });
+    } catch (error) {
+        console.error("Error assigning delivery staff:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Get orders for delivery staff (available and assigned)
+// @route   GET /api/orders/delivery
+// @access  Private (Delivery staff only)
+exports.getDeliveryOrders = async (req, res) => {
+    try {
+        // Check if user is a delivery staff
+        if (req.user.role !== "delivery") {
+            return res.status(403).json({
+                message:
+                    "Not authorized. Only delivery staff can access this endpoint.",
+            });
+        }
+
+        // Get all available orders (ready for pickup) that don't have delivery staff assigned
+        const availableOrders = await Order.find({
+            status: "ready",
+            deliveryStaffId: { $exists: false },
+        }).populate("vendorId", "name address");
+
+        // Get orders assigned to this delivery staff
+        const assignedOrders = await Order.find({
+            deliveryStaffId: req.user._id,
+        }).populate("vendorId", "name address");
+
+        res.status(200).json({
+            availableOrders,
+            assignedOrders,
+        });
+    } catch (error) {
+        console.error("Error in getDeliveryOrders:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Accept an order for delivery
+// @route   POST /api/orders/delivery/accept/:orderId
+// @access  Private (Delivery staff only)
+exports.acceptOrder = async (req, res) => {
+    try {
+        // Check if user is a delivery staff
+        if (req.user.role !== "delivery") {
+            return res.status(403).json({
+                message:
+                    "Not authorized. Only delivery staff can access this endpoint.",
+            });
+        }
+
+        const { orderId } = req.params;
+
+        // Find the order
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Check if order is available for delivery
+        if (order.status !== "ready") {
+            return res
+                .status(400)
+                .json({ message: "This order is not ready for delivery yet" });
+        }
+
+        // Check if already assigned
+        if (order.deliveryStaffId) {
+            return res.status(400).json({
+                message: "This order is already assigned to a delivery staff",
+            });
+        }
+
+        // Assign to this delivery staff
+        order.deliveryStaffId = req.user._id;
+        order.status = "out_for_delivery";
+        await order.save();
+
+        // Add to delivery staff's assignedOrders array
+        await DeliveryStaff.findByIdAndUpdate(req.user._id, {
+            $addToSet: { assignedOrders: orderId },
+        });
+
+        res.status(200).json({
+            message: "Order accepted successfully",
+            order,
+        });
+    } catch (error) {
+        console.error("Error in acceptOrder:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Update delivery order status
+// @route   PUT /api/orders/delivery/status/:orderId
+// @access  Private (Delivery staff only)
+exports.updateDeliveryOrderStatus = async (req, res) => {
+    try {
+        // Check if user is a delivery staff
+        if (req.user.role !== "delivery") {
+            return res.status(403).json({
+                message:
+                    "Not authorized. Only delivery staff can access this endpoint.",
+            });
+        }
+
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        // Validate status
+        const validStatuses = ["picked_up", "on_the_way", "delivered"];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: "Invalid status" });
+        }
+
+        // Find the order
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Check if this delivery staff is assigned to this order
+        if (order.deliveryStaffId.toString() !== req.user._id.toString()) {
+            return res
+                .status(403)
+                .json({ message: "Not authorized to update this order" });
+        }
+
+        // Update status
+        order.status = status;
+        await order.save();
+
+        // If delivered, remove order from assigned orders array
+        if (status === "delivered") {
+            await DeliveryStaff.findByIdAndUpdate(req.user._id, {
+                $pull: { assignedOrders: orderId },
+            });
+        }
+
+        res.status(200).json({
+            message: "Order status updated successfully",
+            order,
+        });
+    } catch (error) {
+        console.error("Error in updateDeliveryOrderStatus:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// @desc    Update delivery staff location
+// @route   POST /api/orders/delivery/location/:orderId
+// @access  Private (Delivery staff only)
+exports.updateDeliveryLocation = async (req, res) => {
+    try {
+        // Check if user is a delivery staff
+        if (req.user.role !== "delivery") {
+            return res.status(403).json({
+                message:
+                    "Not authorized. Only delivery staff can access this endpoint.",
+            });
+        }
+
+        const { orderId } = req.params;
+        const { latitude, longitude } = req.body;
+
+        if (!latitude || !longitude) {
+            return res
+                .status(400)
+                .json({ message: "Latitude and longitude are required" });
+        }
+
+        // Find the order
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Check if this delivery staff is assigned to this order
+        if (
+            order.deliveryStaffId &&
+            order.deliveryStaffId.toString() !== req.user._id.toString()
+        ) {
+            return res
+                .status(403)
+                .json({ message: "Not authorized to update this order" });
+        }
+
+        // Update the delivery location
+        // Note: You would typically store this in a separate collection or use a real-time database
+        // For simplicity, we'll just acknowledge the update
+
+        res.status(200).json({
+            message: "Delivery location updated successfully",
+        });
+    } catch (error) {
+        console.error("Error in updateDeliveryLocation:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 };
 
 // @desc    Verify Razorpay payment

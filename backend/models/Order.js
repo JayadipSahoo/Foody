@@ -14,12 +14,12 @@ const orderItemSchema = new mongoose.Schema({
     quantity: {
         type: Number,
         required: true,
-        min: 1
+        min: 1,
     },
     isVeg: {
         type: Boolean,
         default: false,
-    }
+    },
 });
 
 const orderSchema = new mongoose.Schema(
@@ -27,18 +27,18 @@ const orderSchema = new mongoose.Schema(
         customerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true
+            required: true,
         },
         vendorId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Vendor",
-            required: true
+            required: true,
         },
         items: [orderItemSchema],
         totalAmount: {
             type: Number,
             required: true,
-            min: 0
+            min: 0,
         },
         status: {
             type: String,
@@ -50,7 +50,7 @@ const orderSchema = new mongoose.Schema(
             city: String,
             state: String,
             zipCode: String,
-            landmark: String
+            landmark: String,
         },
         paymentMethod: {
             type: String,
@@ -78,11 +78,16 @@ const orderSchema = new mongoose.Schema(
         },
         specialInstructions: {
             type: String,
-            trim: true
-        }
+            trim: true,
+        },
+        deliveryStaffId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "DeliveryStaff",
+            default: null,
+        },
     },
     {
-        timestamps: true
+        timestamps: true,
     }
 );
 
