@@ -567,7 +567,6 @@ exports.updateDeliveryLocation = async (req, res) => {
     }
 };
 
-};
 
 // @desc    Verify Razorpay payment
 // @route   POST /api/orders/verify-payment

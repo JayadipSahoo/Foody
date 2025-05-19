@@ -9,7 +9,7 @@ dotenv.config();
 
 
 // Temporary -- for dev environment
-const ip = "192.168.1.114";
+const ip = "192.168.1.21";
 
 // Connect to MongoDB
 connectDB();
