@@ -134,7 +134,7 @@ export const isMockToken = (token) => {
 // Helper function to check if we should use mock data
 export const shouldUseMockData = (error) => {
     if (!error) return false;
-
+    
     return (
         error.code === "ECONNABORTED" ||
         error.message?.includes("Network Error") ||
@@ -143,4 +143,4 @@ export const shouldUseMockData = (error) => {
         error.response?.status === 500 ||
         error.response?.status === 401
     );
-};
+}; 

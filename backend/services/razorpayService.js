@@ -22,7 +22,7 @@ try {
   instance = new Razorpay({
     key_id: RAZORPAY_KEY_ID,
     key_secret: RAZORPAY_KEY_SECRET
-  });
+});
   console.log('Razorpay instance created successfully');
 } catch (error) {
   console.error('Failed to initialize Razorpay:', error);

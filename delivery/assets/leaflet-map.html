@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .delivery-icon {
+            background-color: #FFA500;  /* Orange color */
+            border-radius: 50%;
+            border: 2px solid white;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .restaurant-icon {
+            background-color: #4ECDC4;  /* Secondary color */
+            border-radius: 50%;
+            border: 2px solid white;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        .customer-icon {
+            background-color: #FFA500;  /* Orange color */
+            border-radius: 50%;
+            border: 2px solid white;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // Initialize variables
+        let map = null;
+        let deliveryMarker = null;
+        let restaurantMarker = null;
+        let customerMarker = null;
+        let routeLine = null;
+
+        // Custom icons
+        const createIcon = (className, iconText) => {
+            return L.divIcon({
+                className: className,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                html: `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; font-size:16px;">${iconText}</div>`
+            });
+        };
+
+        // Initialize map when document is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create map centered at a default location (will be updated)
+            map = L.map('map').setView([0, 0], 15);
+            
+            // Add OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Let React Native know the map is ready
+            try {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'mapReady'
+                }));
+            } catch (e) {
+                console.error('Error sending mapReady message:', e);
+            }
+        });
+
+        // Function to handle messages from React Native
+        window.addEventListener('message', function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                
+                // Handle location updates
+                if (data.type === 'updateLocations') {
+                    updateMap(data);
+                    
+                    // Send confirmation back
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'locationsUpdated'
+                    }));
+                }
+                
+                // Handle zoom command
+                if (data.type === 'zoom') {
+                    map.setZoom(data.level);
+                }
+                
+                // Handle fit bounds command
+                if (data.type === 'fitBounds') {
+                    fitAllMarkers();
+                }
+            } catch (error) {
+                console.error('Error processing message:', error);
+                try {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'error',
+                        message: error.message
+                    }));
+                } catch (e) {
+                    console.error('Failed to send error message to React Native:', e);
+                }
+            }
+        });
+
+        // Update map with new locations
+        function updateMap(data) {
+            if (!map) return;
+            
+            // Update delivery person marker
+            if (data.delivery) {
+                const deliveryLatLng = L.latLng(data.delivery.latitude, data.delivery.longitude);
+                
+                if (!deliveryMarker) {
+                    deliveryMarker = L.marker(deliveryLatLng, {
+                        icon: createIcon('delivery-icon', '🚴')
+                    }).addTo(map);
+                    deliveryMarker.bindTooltip("Delivery Person");
+                } else {
+                    deliveryMarker.setLatLng(deliveryLatLng);
+                }
+                
+                // Center map on delivery person
+                map.setView(deliveryLatLng, map.getZoom());
+            }
+            
+            // Update restaurant marker
+            if (data.restaurant) {
+                const restaurantLatLng = L.latLng(data.restaurant.latitude, data.restaurant.longitude);
+                
+                if (!restaurantMarker) {
+                    restaurantMarker = L.marker(restaurantLatLng, {
+                        icon: createIcon('restaurant-icon', '🍔')
+                    }).addTo(map);
+                    restaurantMarker.bindTooltip(data.restaurantName || "Restaurant");
+                } else {
+                    restaurantMarker.setLatLng(restaurantLatLng);
+                }
+            }
+            
+            // Update customer marker
+            if (data.customer) {
+                const customerLatLng = L.latLng(data.customer.latitude, data.customer.longitude);
+                
+                if (!customerMarker) {
+                    customerMarker = L.marker(customerLatLng, {
+                        icon: createIcon('customer-icon', '🏠')
+                    }).addTo(map);
+                    customerMarker.bindTooltip("Delivery Location");
+                } else {
+                    customerMarker.setLatLng(customerLatLng);
+                }
+            }
+            
+            // Draw delivery route if we have both delivery and customer markers
+            if (data.drawRoute && deliveryMarker && customerMarker) {
+                const points = [
+                    deliveryMarker.getLatLng()
+                ];
+                
+                // Add restaurant as waypoint if available
+                if (restaurantMarker) {
+                    points.unshift(restaurantMarker.getLatLng());
+                }
+                
+                // Add customer location as destination
+                points.push(customerMarker.getLatLng());
+                
+                if (routeLine) {
+                    routeLine.setLatLngs(points);
+                } else {
+                    routeLine = L.polyline(points, {
+                        color: '#FFA500',
+                        weight: 5,
+                        opacity: 0.7,
+                        dashArray: '10, 10',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                }
+            }
+            
+            // Fit all markers if requested
+            if (data.fitBounds) {
+                fitAllMarkers();
+            }
+        }
+        
+        // Fit map to show all markers
+        function fitAllMarkers() {
+            if (!map) return;
+            
+            const bounds = L.latLngBounds();
+            let hasMarkers = false;
+            
+            if (deliveryMarker) {
+                bounds.extend(deliveryMarker.getLatLng());
+                hasMarkers = true;
+            }
+            
+            if (restaurantMarker) {
+                bounds.extend(restaurantMarker.getLatLng());
+                hasMarkers = true;
+            }
+            
+            if (customerMarker) {
+                bounds.extend(customerMarker.getLatLng());
+                hasMarkers = true;
+            }
+            
+            if (hasMarkers) {
+                map.fitBounds(bounds.pad(0.2));
+            }
+        }
+    </script>
+</body>
+</html> 

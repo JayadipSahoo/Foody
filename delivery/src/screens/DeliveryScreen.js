@@ -8,13 +8,14 @@ import {
     Alert,
     ScrollView,
     Platform,
+    Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import * as Location from "expo-location";
-import MapView, { Marker } from "react-native-maps";
 import { API_URL, THEME, APP_SETTINGS } from "../config/constants";
 import { useUserStore } from "../store/userStore";
+import LeafletMap from "../components/LeafletMap";
 import Constants from "expo-constants";
 
 // Check if running in Expo Go
@@ -27,7 +28,7 @@ const DeliveryScreen = ({ route, navigation }) => {
     const [location, setLocation] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
     const { token } = useUserStore();
-    const mapRef = useRef(null);
+    
     const locationSubscription = useRef(null);
 
     // Order status steps
@@ -40,9 +41,107 @@ const DeliveryScreen = ({ route, navigation }) => {
 
     const [currentStep, setCurrentStep] = useState(0);
 
+    // Start tracking location with highest accuracy
+    const startLocationTracking = async () => {
+        try {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            
+            if (status !== "granted") {
+                setErrorMsg("Permission to access location was denied");
+                return;
+            }
+
+            // IIIT Bhubaneswar coordinates (for fallback only)
+            const iiitLocation = {
+                latitude: 20.29413,
+                longitude: 85.74424,
+                accuracy: 5
+            };
+            
+            // First try to get device location
+            try {
+                const deviceLocation = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Highest,
+                    maximumAge: 0
+                });
+                
+                console.log("Using actual device location:", deviceLocation.coords);
+                
+                // Use the actual device location
+                const actualLocation = {
+                    latitude: deviceLocation.coords.latitude,
+                    longitude: deviceLocation.coords.longitude,
+                    accuracy: deviceLocation.coords.accuracy || 5,
+                    altitude: deviceLocation.coords.altitude,
+                    speed: deviceLocation.coords.speed,
+                    heading: deviceLocation.coords.heading,
+                    timestamp: deviceLocation.timestamp
+                };
+                
+                setLocation(actualLocation);
+                updateDeliveryLocation(actualLocation);
+                
+                // Set up continuous location updates
+                locationSubscription.current = await Location.watchPositionAsync(
+                    {
+                        accuracy: Location.Accuracy.Highest,
+                        distanceInterval: 5, // Update every 5 meters
+                        timeInterval: 10000 // Or every 10 seconds
+                    },
+                    newLocation => {
+                        console.log("Location updated from device:", newLocation.coords);
+                        const updatedLocation = {
+                            latitude: newLocation.coords.latitude,
+                            longitude: newLocation.coords.longitude,
+                            accuracy: newLocation.coords.accuracy || 5,
+                            altitude: newLocation.coords.altitude,
+                            speed: newLocation.coords.speed,
+                            heading: newLocation.coords.heading,
+                            timestamp: newLocation.timestamp
+                        };
+                        setLocation(updatedLocation);
+                        updateDeliveryLocation(updatedLocation);
+                    }
+                );
+                
+            } catch (error) {
+                // If device location fails, use IIIT location as fallback
+                console.error("Error getting device location, using fallback:", error);
+                setLocation(iiitLocation);
+                updateDeliveryLocation(iiitLocation);
+                console.log("Using IIIT Bhubaneswar location as fallback");
+            }
+            
+        } catch (error) {
+            console.error("Error starting tracking:", error);
+            setErrorMsg("Could not set location: " + error.message);
+        }
+    };
+    
+    // Calculate distance between two points in meters
+    const calculateDistance = (coords1, coords2) => {
+        if (!coords1 || !coords2) return 0;
+        
+        const toRad = (value) => (value * Math.PI) / 180;
+        const R = 6371e3; // Earth radius in meters
+        
+        const lat1 = toRad(coords1.latitude);
+        const lat2 = toRad(coords2.latitude);
+        const deltaLat = toRad(coords2.latitude - coords1.latitude);
+        const deltaLon = toRad(coords2.longitude - coords1.longitude);
+        
+        const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        
+        return R * c; // Distance in meters
+    };
+
     // Fetch order details
     const fetchOrderDetails = async () => {
         try {
+            setIsLoading(true);
             const response = await axios.get(`${API_URL}/orders/${orderId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -97,41 +196,6 @@ const DeliveryScreen = ({ route, navigation }) => {
         }
     };
 
-    // Initialize location tracking
-    const startLocationTracking = async () => {
-        try {
-            const { status } =
-                await Location.requestForegroundPermissionsAsync();
-
-            if (status !== "granted") {
-                setErrorMsg("Permission to access location was denied");
-                return;
-            }
-
-            // Get initial location
-            const initialLocation = await Location.getCurrentPositionAsync({});
-            setLocation(initialLocation.coords);
-
-            // Set up location subscription
-            locationSubscription.current = await Location.watchPositionAsync(
-                {
-                    accuracy: Location.Accuracy.High,
-                    distanceInterval: 10, // min distance (meters) between updates
-                    timeInterval: APP_SETTINGS.LOCATION_UPDATE_INTERVAL,
-                },
-                (newLocation) => {
-                    setLocation(newLocation.coords);
-
-                    // Also send location update to server
-                    updateDeliveryLocation(newLocation.coords);
-                }
-            );
-        } catch (error) {
-            console.error("Error starting location tracking:", error);
-            setErrorMsg("Could not track location");
-        }
-    };
-
     // Update delivery location on server
     const updateDeliveryLocation = async (coords) => {
         try {
@@ -183,20 +247,17 @@ const DeliveryScreen = ({ route, navigation }) => {
                 locationSubscription.current.remove();
             }
         };
-    }, [orderId]);
+    }, []);
 
-    if (isLoading) {
+    // Show loading state
+    if (isLoading || !order) {
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color={THEME.colors.primary} />
-            </View>
-        );
-    }
-
-    if (!order) {
-        return (
-            <View style={styles.centered}>
-                <Text>Order not found</Text>
+                <Text style={styles.loadingText}>
+                    {!location ? 'Getting your location...' : 'Loading order details...'}
+                </Text>
+                {errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
             </View>
         );
     }
@@ -212,96 +273,20 @@ const DeliveryScreen = ({ route, navigation }) => {
                             color={THEME.colors.primary}
                         />
                         <Text style={styles.loadingText}>
-                            Getting location...
-                        </Text>
-                    </View>
-                ) : isExpoGo ? (
-                    <View style={styles.mapFallback}>
-                        <Ionicons
-                            name="map-outline"
-                            size={50}
-                            color={THEME.colors.primary}
-                        />
-                        <Text style={styles.mapFallbackText}>
-                            Map view is not available in Expo Go
-                        </Text>
-                        <Text style={styles.mapFallbackDetail}>
-                            Current location: {"\n"}
-                            Latitude: {location.latitude.toFixed(6)}
-                            {"\n"}
-                            Longitude: {location.longitude.toFixed(6)}
+                            Getting your location...
                         </Text>
                     </View>
                 ) : (
-                    <MapView
-                        ref={mapRef}
+                    <LeafletMap 
+                        deliveryLocation={location}
                         style={styles.map}
-                        initialRegion={{
-                            latitude: location.latitude,
-                            longitude: location.longitude,
-                            latitudeDelta: 0.005,
-                            longitudeDelta: 0.005,
+                        onLocationUpdate={(updatedLocation) => {
+                            // Handle location update from the map
+                            console.log("Location updated:", updatedLocation);
+                            setLocation(updatedLocation);
+                            updateDeliveryLocation(updatedLocation);
                         }}
-                    >
-                        {/* Delivery Person Marker */}
-                        <Marker
-                            coordinate={{
-                                latitude: location.latitude,
-                                longitude: location.longitude,
-                            }}
-                            title="Your Location"
-                        >
-                            <View style={styles.deliveryMarker}>
-                                <Ionicons
-                                    name="bicycle"
-                                    size={20}
-                                    color="#fff"
-                                />
-                            </View>
-                        </Marker>
-
-                        {/* Restaurant Marker */}
-                        {order.vendorLocation && (
-                            <Marker
-                                coordinate={{
-                                    latitude: order.vendorLocation.latitude,
-                                    longitude: order.vendorLocation.longitude,
-                                }}
-                                title={order.vendorName || "Restaurant"}
-                            >
-                                <View style={styles.restaurantMarker}>
-                                    <Ionicons
-                                        name="restaurant"
-                                        size={20}
-                                        color="#fff"
-                                    />
-                                </View>
-                            </Marker>
-                        )}
-
-                        {/* Customer Marker */}
-                        {order.deliveryAddress?.coordinates && (
-                            <Marker
-                                coordinate={{
-                                    latitude:
-                                        order.deliveryAddress.coordinates
-                                            .latitude,
-                                    longitude:
-                                        order.deliveryAddress.coordinates
-                                            .longitude,
-                                }}
-                                title="Delivery Location"
-                            >
-                                <View style={styles.customerMarker}>
-                                    <Ionicons
-                                        name="home"
-                                        size={20}
-                                        color="#fff"
-                                    />
-                                </View>
-                            </Marker>
-                        )}
-                    </MapView>
+                    />
                 )}
             </View>
 
@@ -309,10 +294,10 @@ const DeliveryScreen = ({ route, navigation }) => {
             <ScrollView style={styles.infoContainer}>
                 <View style={styles.orderHeader}>
                     <Text style={styles.orderTitle}>
-                        Order #{order.orderNumber}
+                        Order #{order.orderNumber || 'Loading...'}
                     </Text>
                     <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>{order.status}</Text>
+                        <Text style={styles.statusText}>{order.status || 'Loading...'}</Text>
                     </View>
                 </View>
 
@@ -341,7 +326,12 @@ const DeliveryScreen = ({ route, navigation }) => {
                         <TouchableOpacity
                             style={styles.callButton}
                             onPress={() => {
-                                // Handle call action
+                                const phoneNumber = order.customer?.phoneNumber;
+                                if (phoneNumber) {
+                                    Linking.openURL(`tel:${phoneNumber}`);
+                                } else {
+                                    Alert.alert("No phone number available");
+                                }
                             }}
                         >
                             <Text style={styles.callButtonText}>Call</Text>
@@ -435,49 +425,28 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        padding: 20,
     },
     mapContainer: {
         height: "40%",
         position: "relative",
+        borderBottomWidth: 1,
+        borderBottomColor: THEME.colors.light,
     },
     map: {
         ...StyleSheet.absoluteFillObject,
     },
-    mapActions: {
-        position: "absolute",
-        bottom: THEME.spacing.md,
-        right: THEME.spacing.md,
+    loadingText: {
+        marginTop: 10,
+        fontSize: 16,
+        textAlign: 'center',
+        color: THEME.colors.dark,
     },
-    mapButton: {
-        backgroundColor: THEME.colors.white,
-        padding: THEME.spacing.sm,
-        borderRadius: 30,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-    },
-    deliveryMarker: {
-        backgroundColor: THEME.colors.secondary,
-        padding: THEME.spacing.sm,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: "#fff",
-    },
-    restaurantMarker: {
-        backgroundColor: THEME.colors.primary,
-        padding: THEME.spacing.sm,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: "#fff",
-    },
-    customerMarker: {
-        backgroundColor: THEME.colors.info,
-        padding: THEME.spacing.sm,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: "#fff",
+    errorText: {
+        fontSize: 16,
+        color: THEME.colors.error,
+        textAlign: 'center',
+        marginVertical: 10,
     },
     infoContainer: {
         height: "60%",
@@ -587,30 +556,6 @@ const styles = StyleSheet.create({
         color: THEME.colors.white,
         fontWeight: "bold",
         fontSize: THEME.fontSizes.large,
-    },
-    mapFallback: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#f5f5f5",
-        padding: 20,
-    },
-    mapFallbackText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginTop: 10,
-        color: THEME.colors.primary,
-    },
-    mapFallbackDetail: {
-        marginTop: 15,
-        fontSize: 14,
-        textAlign: "center",
-        lineHeight: 22,
-    },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 16,
     },
 });
 

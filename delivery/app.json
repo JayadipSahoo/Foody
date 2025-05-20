@@ -1,44 +1,59 @@
 {
-    "expo": {
-        "name": "Foody Delivery",
-        "slug": "FoodyDelivery",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "icon": "./assets/icon.png",
-        "userInterfaceStyle": "light",
-        "newArchEnabled": true,
-        "splash": {
-            "image": "./assets/splash-icon.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#ffffff"
-        },
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.meshi.delivery"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#ffffff"
-            },
-            "package": "com.meshi.delivery"
-        },
-        "web": {
-            "favicon": "./assets/favicon.png"
-        },
-        "plugins": [
-            [
-                "expo-image-picker",
-                {
-                    "photosPermission": "The app accesses your photos to let you share them with your friends."
-                }
-            ],
-            [
-                "expo-location",
-                {
-                    "locationAlwaysAndWhenInUsePermission": "Allow Meshi Delivery to use your location to show your position on the map and track deliveries."
-                }
-            ]
-        ]
-    }
+  "expo": {
+    "name": "Foody Delivery",
+    "slug": "FoodyDelivery",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meshi.delivery",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location for real-time delivery tracking.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location for real-time delivery tracking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location for real-time delivery tracking."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.meshi.delivery",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Foody Delivery to use your location to show your position on the map and track deliveries."
+        }
+      ],
+      "expo-asset"
+    ],
+    "assetBundlePatterns": [
+      "**/*",
+      "assets/**/*",
+      "assets/leaflet-map.html"
+    ]
+  }
 }

@@ -73,28 +73,28 @@ app.get(
     `${API_BASE_URL}/debug/auth`,
     require("./middleware/authMiddleware").protect,
     (req, res) => {
-        res.json({
-            authenticated: true,
-            user: {
-                id: req.user._id,
-                name: req.user.name,
-                email: req.user.email,
+    res.json({
+        authenticated: true,
+        user: {
+            id: req.user._id,
+            name: req.user.name,
+            email: req.user.email,
                 role: req.role || "unknown",
                 type: req.user.businessName ? "vendor" : "customer",
-            },
+        },
             token: req.headers.authorization
                 ? "Bearer " +
                   req.headers.authorization.split(" ")[1].substring(0, 10) +
                   "..."
                 : "No token",
-        });
+    });
     }
 );
 
 // Debug endpoint to check vendor permissions
 app.get(
     `${API_BASE_URL}/debug/vendor`,
-    require("./middleware/authMiddleware").protect,
+    require("./middleware/authMiddleware").protect, 
     (req, res) => {
         const isVendorType = req.user.businessName ? true : false;
         const hasVendorRole = req.role === "vendor";
