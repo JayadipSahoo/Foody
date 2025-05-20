@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const LeafletMap = ({ 
@@ -16,13 +16,14 @@ const LeafletMap = ({
     }
   }, [deliveryLocation]);
 
-  // Update map marker
+  // Update map marker with direction
   const updateMapMarker = (coords) => {
     if (webViewRef.current && coords) {
       const message = {
         type: 'updateLocation',
         latitude: coords.latitude,
-        longitude: coords.longitude
+        longitude: coords.longitude,
+        heading: coords.heading || 0
       };
       webViewRef.current.postMessage(JSON.stringify(message));
     }
@@ -48,6 +49,7 @@ const LeafletMap = ({
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
         <style>
@@ -63,13 +65,7 @@ const LeafletMap = ({
                 height: 100%;
                 background: #f8f8f8;
             }
-            .delivery-marker {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                z-index: 1000;
-            }
+                                    .delivery-marker {                display: flex;                align-items: center;                justify-content: center;                z-index: 1000;                overflow: visible;            }
             #status {
                 position: absolute;
                 bottom: 10px;
@@ -86,13 +82,9 @@ const LeafletMap = ({
     </head>
     <body>
         <div id="map"></div>
-        <div id="status"></div>
+        <div id="status">Loading map...</div>
         
         <script>
-            // IIIT Bhubaneswar coordinates (fallback only)
-            const IIIT_LAT = 20.29413;
-            const IIIT_LNG = 85.74424;
-            
             // Map variables
             let map = null;
             let marker = null;
@@ -104,9 +96,9 @@ const LeafletMap = ({
                 try {
                     console.log('Initializing map...');
                     
-                    // Always prioritize actual coordinates
-                    const lat = coords?.latitude || IIIT_LAT;
-                    const lng = coords?.longitude || IIIT_LNG;
+                    // Default coordinates (will be updated with actual location)
+                    const lat = coords?.latitude || 20.2942148;
+                    const lng = coords?.longitude || 85.7442971;
                     
                     // Create the map centered on location
                     map = L.map('map', {
@@ -116,56 +108,60 @@ const LeafletMap = ({
                         attributionControl: false
                     });
                     
-                    // Add tile layer (road map)
+                    // Add OpenStreetMap tile layer (more compatible)
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '© OpenStreetMap'
                     }).addTo(map);
                     
-                    // Create the delivery icon
-                    const deliveryIcon = L.divIcon({
-                        className: 'delivery-marker',
-                        html: '📍',
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 40]
-                    });
+                    // Always add a marker - either at provided coordinates or default location
+                    // Use default marker (no custom icon)
+                    marker = L.marker([lat, lng]).addTo(map);
                     
-                    // Add marker at current location
-                    marker = L.marker([lat, lng], {
-                        icon: deliveryIcon,
-                        zIndexOffset: 1000
-                    }).addTo(map);
-                    
-                    // Mark IIIT location for reference (less prominent)
-                    const iiitMarker = L.circle([IIIT_LAT, IIIT_LNG], {
+                    // Add a big red circle that's easier to see
+                    L.circle([lat, lng], {
                         radius: 50,
-                        color: '#3498db',
-                        fillColor: '#3498db',
-                        fillOpacity: 0.05,
-                        weight: 1
+                        color: 'red',
+                        fillColor: 'red',
+                        fillOpacity: 0.3,
+                        weight: 3
                     }).addTo(map);
                     
-                    // Add tooltip to IIIT location
-                    iiitMarker.bindTooltip("IIIT Bhubaneswar", {
-                        permanent: false,
-                        direction: 'top',
-                        className: 'iiit-tooltip'
-                    });
+                    // Add another marker with default icon as backup
+                    L.marker([lat, lng]).addTo(map);
+                    
+                    document.getElementById('status').innerHTML = 'Current location: ' + 
+                        lat.toFixed(5) + ', ' + lng.toFixed(5);
                     
                     // Mark map as initialized
                     isMapInitialized = true;
+                    
+                    // Force multiple map refreshes to ensure everything renders properly
+                    setTimeout(() => {
+                        if (map) {
+                            map.invalidateSize();
+                            console.log('Map refreshed (1st attempt)');
+                            
+                            // Add a popup that will definitely be visible
+                            L.popup()
+                                .setLatLng([lat, lng])
+                                .setContent('<b>Your Location:</b><br>' + lat.toFixed(5) + ', ' + lng.toFixed(5))
+                                .openOn(map);
+                            
+                            // Try again after a longer delay
+                            setTimeout(() => {
+                                map.invalidateSize();
+                                console.log('Map refreshed (2nd attempt)');
+                            }, 1000);
+                        }
+                    }, 300);
                     
                     // Notify React Native that map is ready
                     window.ReactNativeWebView.postMessage(JSON.stringify({
                         type: 'mapReady'
                     }));
                     
-                    console.log('Map initialized');
-                    
-                    // Show coordinates in status
-                    document.getElementById('status').innerHTML = 'Current location: ' + 
-                        lat.toFixed(5) + ', ' + lng.toFixed(5);
-                    
+                    console.log('Map initialized successfully');
                     return true;
                 } catch (error) {
                     console.error('Error initializing map:', error);
@@ -187,15 +183,34 @@ const LeafletMap = ({
                 }
                 
                 try {
-                    // Update marker position
-                    marker.setLatLng([coords.latitude, coords.longitude]);
+                    if (marker) {
+                        // Update existing marker position
+                        marker.setLatLng([coords.latitude, coords.longitude]);
+                        
+                        // Add another red circle at the location for visibility
+                        L.circle([coords.latitude, coords.longitude], {
+                            radius: 50,
+                            color: 'red',
+                            fillColor: 'red',
+                            fillOpacity: 0.3,
+                            weight: 3
+                        }).addTo(map);
+                    } else {
+                        // Create new marker if it doesn't exist - use default marker
+                        marker = L.marker([coords.latitude, coords.longitude]).addTo(map);
+                    }
                     
-                    // Update map center
-                    map.setView([coords.latitude, coords.longitude], map.getZoom());
+                    // Update map center with animation
+                    map.setView([coords.latitude, coords.longitude], 17, {
+                        animate: true,
+                        duration: 0.5
+                    });
                     
                     // Update status display
                     document.getElementById('status').innerHTML = 'Current location: ' + 
                         coords.latitude.toFixed(5) + ', ' + coords.longitude.toFixed(5);
+                    
+                    console.log('Marker updated to:', coords.latitude, coords.longitude);
                 } catch (error) {
                     console.error('Error updating marker:', error);
                 }
@@ -203,16 +218,9 @@ const LeafletMap = ({
             
             // Initialize map on page load
             document.addEventListener('DOMContentLoaded', function() {
-                console.log('Document loaded');
-                
-                // Wait for coordinates from React Native
-                // Only use IIIT location as fallback after timeout
-                setTimeout(function() {
-                    if (!isMapInitialized) {
-                        console.log('No coordinates received, using fallback location');
-                        initMap({latitude: IIIT_LAT, longitude: IIIT_LNG});
-                    }
-                }, 2000);
+                console.log('Document loaded, initializing map');
+                // Initialize with default location
+                initMap();
             });
             
             // Handle messages from React Native
@@ -244,8 +252,31 @@ const LeafletMap = ({
         style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}
+        mixedContentMode="always"
+        allowFileAccess={true}
+        allowUniversalAccessFromFileURLs={true}
+        allowFileAccessFromFileURLs={true}
         onMessage={handleWebViewMessage}
         onError={(error) => console.error('WebView error:', error)}
+        renderLoading={() => (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0000ff" />
+            <Text style={styles.loadingText}>Loading map...</Text>
+          </View>
+        )}
+        startInLoadingState={true}
+        androidHardwareAccelerationDisabled={false}
+        androidLayerType="hardware"
+        cacheEnabled={true}
+        onLoadEnd={() => {
+          console.log('WebView fully loaded');
+          // Force a marker update when WebView is fully loaded
+          if (deliveryLocation) {
+            setTimeout(() => {
+              updateMapMarker(deliveryLocation);
+            }, 500);
+          }
+        }}
       />
     </View>
   );
@@ -258,6 +289,20 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
   }
 });
 

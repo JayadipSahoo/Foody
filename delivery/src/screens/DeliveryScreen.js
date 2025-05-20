@@ -51,14 +51,7 @@ const DeliveryScreen = ({ route, navigation }) => {
                 return;
             }
 
-            // IIIT Bhubaneswar coordinates (for fallback only)
-            const iiitLocation = {
-                latitude: 20.29413,
-                longitude: 85.74424,
-                accuracy: 5
-            };
-            
-            // First try to get device location
+            // Try to get device location with highest accuracy
             try {
                 const deviceLocation = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Highest,
@@ -105,11 +98,9 @@ const DeliveryScreen = ({ route, navigation }) => {
                 );
                 
             } catch (error) {
-                // If device location fails, use IIIT location as fallback
-                console.error("Error getting device location, using fallback:", error);
-                setLocation(iiitLocation);
-                updateDeliveryLocation(iiitLocation);
-                console.log("Using IIIT Bhubaneswar location as fallback");
+                // If device location fails, show error
+                console.error("Error getting device location:", error);
+                setErrorMsg("Could not get your location. Please check your device settings and permissions.");
             }
             
         } catch (error) {
