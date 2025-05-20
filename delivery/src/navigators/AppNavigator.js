@@ -51,7 +51,7 @@ const AppNavigator = () => {
                     backgroundColor: "#fff",
                 }}
             >
-                <ActivityIndicator size="large" color="#FF6B6B" />
+                <ActivityIndicator size="large" color="#FFA500" />
                 <Text style={{ marginTop: 10 }}>Loading...</Text>
             </View>
         );
@@ -99,7 +99,7 @@ const MainStack = () => {
         <Stack.Navigator
             screenOptions={{
                 headerStyle: {
-                    backgroundColor: "#FF6B6B",
+                    backgroundColor: "#FFA500",
                 },
                 headerTintColor: "#fff",
                 headerTitleStyle: {

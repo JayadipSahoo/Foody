@@ -152,7 +152,7 @@ const HomeScreen = ({ navigation }) => {
 
                 <View style={styles.orderFooter}>
                     <Text style={styles.orderPrice}>
-                        ${item.totalAmount?.toFixed(2)}
+                        ₹{item.totalAmount?.toFixed(2)}
                     </Text>
                     {!isAssigned && (
                         <TouchableOpacity

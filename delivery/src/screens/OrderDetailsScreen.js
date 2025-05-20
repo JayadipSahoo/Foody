@@ -181,7 +181,7 @@ const OrderDetailsScreen = ({ route, navigation }) => {
                                     </Text>
                                 </View>
                                 <Text style={styles.itemPrice}>
-                                    ${(item.price * item.quantity).toFixed(2)}
+                                    ₹{(item.price * item.quantity).toFixed(2)}
                                 </Text>
                             </View>
                         ))}
@@ -192,27 +192,27 @@ const OrderDetailsScreen = ({ route, navigation }) => {
                     <View style={styles.summaryRow}>
                         <Text style={styles.summaryLabel}>Subtotal</Text>
                         <Text style={styles.summaryValue}>
-                            ${order.subtotal?.toFixed(2) || "0.00"}
+                            ₹{order.subtotal?.toFixed(2) || "0.00"}
                         </Text>
                     </View>
                     <View style={styles.summaryRow}>
                         <Text style={styles.summaryLabel}>Delivery Fee</Text>
                         <Text style={styles.summaryValue}>
-                            ${order.deliveryFee?.toFixed(2) || "0.00"}
+                            ₹{order.deliveryFee?.toFixed(2) || "0.00"}
                         </Text>
                     </View>
                     {order.tax > 0 && (
                         <View style={styles.summaryRow}>
                             <Text style={styles.summaryLabel}>Tax</Text>
                             <Text style={styles.summaryValue}>
-                                ${order.tax?.toFixed(2) || "0.00"}
+                                ₹{order.tax?.toFixed(2) || "0.00"}
                             </Text>
                         </View>
                     )}
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Total</Text>
                         <Text style={styles.totalValue}>
-                            ${order.totalAmount?.toFixed(2) || "0.00"}
+                            ₹{order.totalAmount?.toFixed(2) || "0.00"}
                         </Text>
                     </View>
                     <View style={styles.paymentMethod}>

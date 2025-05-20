@@ -169,7 +169,7 @@ const LoginScreen = ({ navigation }) => {
                     />
                     {isLoadingVendors ? (
                         <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="small" color="#FF6B6B" />
+                            <ActivityIndicator size="small" color="#FFA500" />
                             <Text style={styles.loadingText}>
                                 Loading vendors...
                             </Text>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     loginButton: {
         width: "100%",
         height: 50,
-        backgroundColor: "#FF6B6B",
+        backgroundColor: "#FFA500",
         borderRadius: 10,
         justifyContent: "center",
         alignItems: "center",
@@ -307,12 +307,12 @@ const styles = StyleSheet.create({
         color: "#666",
     },
     signupLink: {
-        color: "#FF6B6B",
+        color: "#FFA500",
         fontWeight: "bold",
         marginLeft: 5,
     },
     errorText: {
-        color: "#FF6B6B",
+        color: "#FFA500",
         marginBottom: 15,
         textAlign: "center",
     },
