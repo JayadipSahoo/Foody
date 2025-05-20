@@ -1,5 +1,5 @@
 // Application constants
-const IP_ADDRESS = "192.168.1.21"
+const IP_ADDRESS = "172.22.4.4"
 
 // API Configuration
 export const API_URL = `http://${IP_ADDRESS}:5000/api`;

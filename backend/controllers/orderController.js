@@ -575,16 +575,40 @@ exports.verifyPayment = async (req, res) => {
     try {
         const { razorpayOrderId, razorpayPaymentId, razorpayPaymentSignature } = req.body;
         
+        console.log(`Verifying payment: OrderID: ${razorpayOrderId}, PaymentID: ${razorpayPaymentId}`);
+        
+        // Validate inputs
+        if (!razorpayOrderId || !razorpayPaymentId || !razorpayPaymentSignature) {
+            console.error('Missing required payment verification parameters');
+            return res.status(400).json({ 
+                message: "Missing required parameters",
+                details: "OrderID, PaymentID, and Signature are required"
+            });
+        }
+        
         // Find the order
         const order = await Order.findOne({ 'paymentInfo.razorpayOrderId': razorpayOrderId });
         
         if (!order) {
+            console.error(`Order with razorpayOrderId ${razorpayOrderId} not found`);
             return res.status(404).json({ message: "Order not found" });
         }
         
+        console.log(`Found order: ${order._id}, current status: ${order.status}`);
+        
         // Check if user is authorized to verify this payment
         if (order.customerId.toString() !== req.user._id.toString()) {
+            console.error(`User ${req.user._id} attempted to verify payment for order ${order._id} owned by ${order.customerId}`);
             return res.status(403).json({ message: "Not authorized" });
+        }
+        
+        // Check if payment is already verified
+        if (order.status !== 'payment-pending' && order.paymentInfo.paymentStatus === 'completed') {
+            console.log(`Payment for order ${order._id} was already verified`);
+            return res.status(200).json({ 
+                message: "Payment already verified",
+                order 
+            });
         }
         
         // Verify signature
@@ -595,8 +619,11 @@ exports.verifyPayment = async (req, res) => {
         );
         
         if (!isValid) {
+            console.error(`Invalid payment signature for order ${order._id}`);
             return res.status(400).json({ message: "Invalid payment signature" });
         }
+        
+        console.log(`Payment signature verified for order ${order._id}`);
         
         // Update order
         order.paymentInfo.razorpayPaymentId = razorpayPaymentId;
@@ -606,19 +633,48 @@ exports.verifyPayment = async (req, res) => {
         
         await order.save();
         
-        res.status(200).json({ order });
+        console.log(`Order ${order._id} updated with payment information`);
+        
+        res.status(200).json({ 
+            success: true,
+            message: "Payment verified successfully", 
+            order 
+        });
     } catch (error) {
         console.error("Error in verifyPayment:", error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ 
+            message: "Server error during payment verification",
+            error: error.message 
+        });
     }
 }; 
 
 exports.getRazorpayKey = async (req, res) => {
     try {
-        const key = process.env.RAZORPAY_KEY_ID;
-        res.status(200).json({ key });
+        // Use the test key from Razorpay's documentation for development
+        const key = process.env.RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+        
+        // Log whether we're using actual keys or test keys
+        if (process.env.RAZORPAY_KEY_ID) {
+            console.log('Using configured Razorpay key_id');
+        } else {
+            console.warn('WARNING: Using default test Razorpay key_id. This works only in test mode.');
+            console.log('For testing, use card number: 4111 1111 1111 1111, expiry: any future date, CVV: any 3 digits');
+        }
+        
+        res.status(200).json({ 
+            key,
+            isTestMode: !process.env.RAZORPAY_KEY_ID,
+            testInfo: !process.env.RAZORPAY_KEY_ID ? {
+                cardNumber: '4111 1111 1111 1111',
+                expiry: 'Any future date',
+                cvv: 'Any 3 digits',
+                name: 'Any name',
+                success: true
+            } : null
+        });
     } catch (error) {
         console.error("Error in getRazorpayKey:", error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };

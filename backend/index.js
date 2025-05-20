@@ -9,7 +9,7 @@ dotenv.config();
 
 
 // Temporary -- for dev environment
-const ip = "192.168.1.21";
+const ip = "172.22.4.4";
 
 // Connect to MongoDB
 connectDB();
@@ -98,7 +98,6 @@ app.get(
     (req, res) => {
         const isVendorType = req.user.businessName ? true : false;
         const hasVendorRole = req.role === "vendor";
-
         res.json({
             userId: req.user._id,
             name: req.user.name,
@@ -112,7 +111,7 @@ app.get(
                 businessName: req.user.businessName || null,
                 address: req.user.address || null,
                 contactNumber: req.user.contactNumber || null,
-            },
+            }
         });
     }
 );

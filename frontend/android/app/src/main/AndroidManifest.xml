@@ -28,7 +28,20 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="com.anonymous.Meshi"/>
+        <data android:scheme="exp+meshi"/>
       </intent-filter>
+    </activity>
+    
+    <!-- Razorpay Activity -->
+    <activity
+        android:name="com.razorpay.CheckoutActivity"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+        android:exported="true"
+        android:theme="@style/CheckoutTheme">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent-filter>
     </activity>
   </application>
 </manifest>

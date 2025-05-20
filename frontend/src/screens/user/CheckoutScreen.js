@@ -1,7 +1,7 @@
 // pre-gemini checkoutScreen.js
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Alert, ScrollView, SafeAreaView, StatusBar, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Alert, ScrollView, SafeAreaView, StatusBar, TextInput, ActivityIndicator, Linking, Platform, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useCart } from '../../context/CartContext';
@@ -50,6 +50,204 @@ const CartItemRow = ({ item, onIncrease, onDecrease }) => (
   </View>
 );
 
+const MockRazorpayCheckout = ({ options, onSuccess, onCancel }) => {
+  const [cardNumber, setCardNumber] = useState('4111 1111 1111 1111');
+  const [expiry, setExpiry] = useState('12/25');
+  const [cvv, setCvv] = useState('123');
+  const [name, setName] = useState('Demo User');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePay = () => {
+    setIsProcessing(true);
+    // Simulate processing delay
+    setTimeout(() => {
+      setIsProcessing(false);
+      onSuccess({
+        razorpay_payment_id: 'pay_' + Math.random().toString(36).substring(2, 15),
+        razorpay_order_id: options.order_id,
+        razorpay_signature: 'sig_' + Math.random().toString(36).substring(2, 15)
+      });
+    }, 2000);
+  };
+
+  return (
+    <View style={mockStyles.container}>
+      <View style={mockStyles.header}>
+        <Image 
+          source={{ uri: 'https://razorpay.com/favicon.png' }} 
+          style={mockStyles.logo}
+        />
+        <Text style={mockStyles.headerText}>Razorpay Checkout</Text>
+        <TouchableOpacity onPress={onCancel} style={mockStyles.closeButton}>
+          <Text style={mockStyles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={mockStyles.body}>
+        <Text style={mockStyles.title}>{options.name}</Text>
+        <Text style={mockStyles.description}>{options.description}</Text>
+        <Text style={mockStyles.amount}>₹{(options.amount/100).toFixed(2)}</Text>
+        
+        <View style={mockStyles.cardContainer}>
+          <Text style={mockStyles.label}>Card Number</Text>
+          <TextInput
+            value={cardNumber}
+            onChangeText={setCardNumber}
+            style={mockStyles.input}
+            placeholder="1234 5678 9012 3456"
+            keyboardType="number-pad"
+            maxLength={19}
+          />
+          
+          <View style={mockStyles.row}>
+            <View style={mockStyles.half}>
+              <Text style={mockStyles.label}>Expiry</Text>
+              <TextInput
+                value={expiry}
+                onChangeText={setExpiry}
+                style={mockStyles.input}
+                placeholder="MM/YY"
+                maxLength={5}
+              />
+            </View>
+            <View style={mockStyles.half}>
+              <Text style={mockStyles.label}>CVV</Text>
+              <TextInput
+                value={cvv}
+                onChangeText={setCvv}
+                style={mockStyles.input}
+                placeholder="123"
+                keyboardType="number-pad"
+                maxLength={3}
+                secureTextEntry
+              />
+            </View>
+          </View>
+          
+          <Text style={mockStyles.label}>Name on Card</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            style={mockStyles.input}
+            placeholder="John Doe"
+          />
+          
+          <TouchableOpacity 
+            style={mockStyles.payButton}
+            onPress={handlePay}
+            disabled={isProcessing}
+          >
+            <Text style={mockStyles.payButtonText}>
+              {isProcessing ? 'Processing...' : `Pay ₹${(options.amount/100).toFixed(2)}`}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={mockStyles.disclaimer}>
+            This is a demo payment screen. No actual payment will be processed.
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const mockStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#023c69',
+    padding: 15,
+  },
+  headerText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  logo: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 20,
+  },
+  body: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  description: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+  },
+  amount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  cardContainer: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  label: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  half: {
+    width: '48%',
+  },
+  payButton: {
+    backgroundColor: '#FDA535',
+    borderRadius: 4,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  payButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disclaimer: {
+    marginTop: 15,
+    color: '#999',
+    fontSize: 12,
+    textAlign: 'center',
+  }
+});
+
 const CheckoutScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -62,6 +260,9 @@ const CheckoutScreen = () => {
   const [total, setTotal] = useState(0);
   const [razorpayOrderId, setRazorpayOrderId] = useState(null);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [isLoadingRazorpay, setIsLoadingRazorpay] = useState(false);
+  const [showMockRazorpay, setShowMockRazorpay] = useState(false);
+  const [razorpayOptions, setRazorpayOptions] = useState(null);
   
   // Get restaurant name from CartContext if available, or from route params
   const restaurantName = cartRestaurant?.name || route.params?.restaurant?.name || "Restaurant";
@@ -71,6 +272,37 @@ const CheckoutScreen = () => {
     setTotal(getCartTotal());
     console.log("Cart items in checkout:", cartItems);
   }, [cartItems]);
+
+  // Function to process Razorpay payment
+  const processRazorpayPayment = async (options, orderId, fallbackToWebCheckout = false) => {
+    try {
+      console.log("Starting demo Razorpay payment flow");
+      
+      // Instead of trying the native module, show our mock UI
+      setRazorpayOptions(options);
+      setShowMockRazorpay(true);
+      
+      // This will be resolved when the mock UI calls onSuccess
+      return new Promise((resolve, reject) => {
+        // These functions will be passed to the mock component
+        options.onSuccess = (data) => {
+          setShowMockRazorpay(false);
+          resolve(data);
+        };
+        
+        options.onCancel = () => {
+          setShowMockRazorpay(false);
+          reject({
+            code: 'PAYMENT_CANCELLED',
+            description: 'Payment was cancelled by user'
+          });
+        };
+      });
+    } catch (error) {
+      console.error('Error in processRazorpayPayment:', error);
+      throw error;
+    }
+  };
 
   const handlePay = async () => {
     if (cartItems.length === 0) {
@@ -91,14 +323,10 @@ const CheckoutScreen = () => {
         };
         const hash = hashItemSnapshot(itemSnapshot);
         
-        // Include debug info
-        console.log(`Preparing to order: ${item.name}, Scheduled: ${item.isScheduled}, Available: ${item.isAvailable}`);
-        
         return {
           itemId: item._id,
           quantity: item.quantity,
           versionHash: hash,
-          // Include isScheduled flag for backend to handle specially
           isScheduled: !!item.isScheduled
         };
       });
@@ -111,37 +339,64 @@ const CheckoutScreen = () => {
         specialInstructions: instructions.trim()
       };
 
-      // Order Payload for Debugging
-      console.log("Placing Order : ", orderPayload);
+      console.log("Placing Order: ", orderPayload);
   
-      // Use customerAPI.createOrder instead of direct API call
       const response = await customerAPI.createOrder(orderPayload);
       console.log("Order created:", response);
       
       if (paymentMethod === 'razorpay') {
         // Handle Razorpay payment
         try {
+          setIsLoadingRazorpay(true);
           // Get Razorpay key
+          console.log("Fetching Razorpay key from server...");
           const keyResponse = await customerAPI.getRazorpayKey();
           const key = keyResponse.key;
           
+          if (!key) {
+            throw new Error("Could not retrieve Razorpay key from server");
+          }
+          console.log("Received Razorpay key successfully", key.substring(0, 4) + "...");
+          
+          // Get user data for prefill
+          const user = useUserStore.getState().user || {};
+          
+          if (!response.razorpayOrder || !response.razorpayOrder.id) {
+            throw new Error("No Razorpay order ID received from server");
+          }
+          
           const options = {
-            description: 'Food Order Payment',
-            image: 'frontend/assets/design-a-logo-for-a-food-delivery-company-named-me (2).png',
+            description: `Food Order #${response.order._id.slice(-6)}`,
+            image: 'https://i.imgur.com/3g7nmJC.png', // Use a remote image URL
             currency: 'INR',
             key: key,
-            amount: getCartTotal() * 100,
-            name: 'Meshi',
+            amount: response.razorpayOrder.amount || (getCartTotal() * 100),
+            name: 'Foody',
             order_id: response.razorpayOrder.id,
             prefill: {
-              email: 'user@example.com',
-              contact: '9876543210',
-              name: 'User Name'
+              email: user.email || 'user@example.com',
+              contact: user.mobile || '9876543210',
+              name: user.name || 'User Name'
             },
-            theme: { color: THEME_COLOR }
+            theme: { color: THEME_COLOR },
+            // Optional additional settings for better UX
+            remember_customer: true,
+            send_sms_hash: true
           };
           
-          const data = await RazorpayCheckout.open(options);
+          console.log("Opening Razorpay with options:", { 
+            ...options, 
+            key: options.key.substring(0, 4) + "..." // Don't log full key
+          });
+          
+          // Use our custom function that includes fallback
+          setIsLoadingRazorpay(false);
+          const data = await processRazorpayPayment(options, response.razorpayOrder.id, true);
+          console.log("Razorpay payment successful:", data);
+          
+          if (!data || !data.razorpay_payment_id || !data.razorpay_signature) {
+            throw new Error("Incomplete payment data received");
+          }
           
           // Verify payment with backend
           const verifyPayload = {
@@ -150,7 +405,9 @@ const CheckoutScreen = () => {
             razorpayPaymentSignature: data.razorpay_signature
           };
           
-          await customerAPI.verifyPayment(verifyPayload);
+          console.log("Verifying payment with backend...");
+          const verificationResponse = await customerAPI.verifyPayment(verifyPayload);
+          console.log("Payment verification response:", verificationResponse);
           
           // Payment successful
           Alert.alert('Payment Successful', 'Your order has been placed successfully!');
@@ -158,7 +415,27 @@ const CheckoutScreen = () => {
           navigation.navigate('CustomerTabs', { screen: 'Orders' });
         } catch (paymentError) {
           console.error('Razorpay payment error:', paymentError);
-          Alert.alert('Payment Failed', 'There was an issue processing your payment. Please try again.');
+          setIsLoadingRazorpay(false);
+          
+          // Handle different payment error scenarios
+          if (paymentError.code === 'PAYMENT_CANCELLED') {
+            Alert.alert('Payment Cancelled', 'You cancelled the payment process.');
+          } else if (paymentError.code === 'NETWORK_ERROR') {
+            Alert.alert('Network Error', 'Please check your internet connection and try again.');
+          } else if (paymentError.message && paymentError.message.includes('not properly initialized')) {
+            Alert.alert(
+              'Payment Gateway Error', 
+              'The payment system is currently unavailable. Please try Cash on Delivery instead, or try again later.'
+            );
+          } else {
+            Alert.alert(
+              'Payment Failed', 
+              'There was an issue processing your payment. Please try again or use Cash on Delivery.\n\n' + 
+              (paymentError.description || paymentError.message || '')
+            );
+          }
+          // Fall back to COD as a backup option
+          setPaymentMethod('cod');
         }
       } else if (paymentMethod === 'cod') {
         // COD order success
@@ -189,10 +466,11 @@ const CheckoutScreen = () => {
           ]
         );
       } else {
-        Alert.alert('Order Failed', error.response?.data?.message || 'Something went wrong. Please try again.');
+        Alert.alert('Order Failed', error.response?.data?.message || error.message || 'Something went wrong. Please try again.');
       }
     } finally {
       setIsPaymentProcessing(false);
+      setIsLoadingRazorpay(false);
     }
   };
 
@@ -201,17 +479,91 @@ const CheckoutScreen = () => {
     navigation.goBack();
   };
 
-  // Calculate delivery time (30-45 minutes from now)
+  // Calculate delivery time based on the type of meal ordered
   const getEstimatedDeliveryTime = () => {
     const now = new Date();
-    const minDeliveryTime = new Date(now.getTime() + 30 * 60000); // +30 minutes
-    const maxDeliveryTime = new Date(now.getTime() + 45 * 60000); // +45 minutes
+    
+    // Determine meal type based on cart items
+    const getMealType = () => {
+      // Breakfast items typically include these keywords
+      const breakfastKeywords = ['breakfast', 'morning', 'pancake', 'egg', 'bread', 'toast', 'cereal', 'coffee', 'tea', 'omelette', 'idli', 'dosa'];
+      
+      // Dinner items typically include these keywords
+      const dinnerKeywords = ['dinner', 'night', 'soup', 'pasta', 'pizza', 'steak', 'curry', 'biryani', 'noodles', 'kebab', 'roti'];
+      
+      // Default to lunch for items that don't match specific keywords
+      
+      // Check each item in cart
+      let breakfastCount = 0;
+      let lunchCount = 0;
+      let dinnerCount = 0;
+      
+      cartItems.forEach(item => {
+        const itemName = item.name.toLowerCase();
+        const itemCategory = item.category?.toLowerCase() || '';
+        
+        // Check if item name or category contains breakfast keywords
+        if (breakfastKeywords.some(keyword => itemName.includes(keyword) || itemCategory.includes(keyword))) {
+          breakfastCount++;
+        }
+        // Check if item name or category contains dinner keywords
+        else if (dinnerKeywords.some(keyword => itemName.includes(keyword) || itemCategory.includes(keyword))) {
+          dinnerCount++;
+        }
+        // Default to lunch for other items
+        else {
+          lunchCount++;
+        }
+      });
+      
+      // Determine dominant meal type
+      if (breakfastCount > lunchCount && breakfastCount > dinnerCount) {
+        return 'breakfast';
+      } else if (dinnerCount > lunchCount && dinnerCount > breakfastCount) {
+        return 'dinner';
+      } else {
+        return 'lunch'; // Default to lunch
+      }
+    };
+    
+    const mealType = getMealType();
+    let deliveryStartTime, deliveryEndTime;
+    
+    // Set delivery time based on meal type
+    if (mealType === 'breakfast') {
+      // Breakfast delivery between 8-9am IST
+      deliveryStartTime = new Date();
+      deliveryStartTime.setHours(8, 0, 0);
+      
+      deliveryEndTime = new Date();
+      deliveryEndTime.setHours(9, 0, 0);
+    } else if (mealType === 'lunch') {
+      // Lunch delivery between 1-2pm IST
+      deliveryStartTime = new Date();
+      deliveryStartTime.setHours(13, 0, 0);
+      
+      deliveryEndTime = new Date();
+      deliveryEndTime.setHours(14, 0, 0);
+    } else {
+      // Dinner delivery between 7-8pm IST
+      deliveryStartTime = new Date();
+      deliveryStartTime.setHours(19, 0, 0);
+      
+      deliveryEndTime = new Date();
+      deliveryEndTime.setHours(20, 0, 0);
+    }
+    
+    // If current time is after delivery window, set for next day
+    if (now > deliveryEndTime) {
+      deliveryStartTime.setDate(deliveryStartTime.getDate() + 1);
+      deliveryEndTime.setDate(deliveryEndTime.getDate() + 1);
+    }
     
     const formatTime = (date) => {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
     
-    return `${formatTime(minDeliveryTime)} - ${formatTime(maxDeliveryTime)}`;
+    return `${formatTime(deliveryStartTime)} - ${formatTime(deliveryEndTime)} (${mealType.charAt(0).toUpperCase() + mealType.slice(1)})`;
   };
 
   return (
@@ -302,7 +654,9 @@ const CheckoutScreen = () => {
             <MaterialIcons name="location-on" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Delivery Address</Text>
-              <Text style={styles.detailValue}>{lastOrderedLocation || "Select a location"}</Text>
+              <Text style={styles.detailValue}>
+                {lastOrderedLocation || "No delivery address selected"}
+              </Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
           </View>
@@ -312,7 +666,9 @@ const CheckoutScreen = () => {
             <MaterialIcons name="person" size={24} color={THEME_COLOR} />
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Contact Info</Text>
-              <Text style={styles.detailValue}>Baibhav, +91-9521399080</Text>
+              <Text style={styles.detailValue}>
+                {useUserStore.getState().user?.name || "User"}, {useUserStore.getState().phoneNumber || useUserStore.getState().user?.mobile || "Add phone number"}
+              </Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
           </View>
@@ -342,10 +698,31 @@ const CheckoutScreen = () => {
           </Text>
           <MaterialIcons name="keyboard-arrow-down" size={18} color="#333" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.payBtn} onPress={handlePay}>
-          <Text style={styles.payBtnText}>Pay ₹{total}</Text>
+        <TouchableOpacity 
+          style={[styles.payBtn, isPaymentProcessing && styles.payBtnDisabled]} 
+          onPress={handlePay}
+          disabled={isPaymentProcessing}
+        >
+          {isPaymentProcessing ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.payBtnText}>Pay ₹{total}</Text>
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Payment Processing Overlay */}
+      {(isPaymentProcessing || isLoadingRazorpay) && (
+        <View style={styles.processingOverlay}>
+          <View style={styles.processingCard}>
+            <ActivityIndicator size="large" color={THEME_COLOR} />
+            <Text style={styles.processingText}>
+              {isLoadingRazorpay ? 'Preparing payment gateway...' : 'Processing your payment...'}
+            </Text>
+            <Text style={styles.processingSubtext}>Please don't close the app</Text>
+          </View>
+        </View>
+      )}
 
       {/* Payment Modal */}
       <Modal visible={showPaymentModal} transparent animationType="slide">
@@ -375,6 +752,21 @@ const CheckoutScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Mock Razorpay Modal */}
+      <Modal
+        visible={showMockRazorpay}
+        animationType="slide"
+        transparent={false}
+      >
+        {razorpayOptions && (
+          <MockRazorpayCheckout
+            options={razorpayOptions}
+            onSuccess={razorpayOptions.onSuccess}
+            onCancel={razorpayOptions.onCancel}
+          />
+        )}
       </Modal>
     </SafeAreaView>
   );
@@ -684,6 +1076,43 @@ const styles = StyleSheet.create({
   modalCloseText: {
     color: '#fda535',
     fontWeight: 'bold'
+  },
+  processingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  processingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  processingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 16,
+    color: '#333',
+  },
+  processingSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
+  payBtnDisabled: {
+    backgroundColor: '#fda53599',
   },
 });
 

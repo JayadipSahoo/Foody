@@ -1,5 +1,5 @@
 // API Configuration
-export const API_URL = "http://192.168.1.21:5000/api";
+export const API_URL = "http://172.22.4.4:5000/api";
 
 // Debug flags to control logging
 export const DEBUG = {
@@ -38,8 +38,7 @@ export const MOCK_DATA = {
                 description: "Delicious vegetable pizza with fresh toppings",
                 price: 249,
                 category: "Pizza",
-                imageUrl:
-                    "https://images.unsplash.com/photo-1513104890138-7c749659a591",
+                imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591",
                 isVeg: true,
                 isAvailable: true,
             },
@@ -49,8 +48,7 @@ export const MOCK_DATA = {
                 description: "Juicy chicken burger with special sauce",
                 price: 199,
                 category: "Burgers",
-                imageUrl:
-                    "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
+                imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd",
                 isVeg: false,
                 isAvailable: true,
             },
@@ -60,8 +58,7 @@ export const MOCK_DATA = {
                 description: "Crispy french fries with seasoning",
                 price: 99,
                 category: "Sides",
-                imageUrl:
-                    "https://images.unsplash.com/photo-1576107232684-1279f390859f",
+                imageUrl: "https://images.unsplash.com/photo-1576107232684-1279f390859f",
                 isVeg: true,
                 isAvailable: true,
             },

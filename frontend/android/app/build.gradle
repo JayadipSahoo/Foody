@@ -93,6 +93,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        
+        // Required for Razorpay SDK
+        multiDexEnabled true
     }
     signingConfigs {
         debug {
@@ -146,6 +149,14 @@ android {
     }
 }
 
+repositories {
+    mavenCentral()
+    jcenter()
+    google()
+    // Razorpay Repository
+    maven { url "https://maven.google.com" }
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
@@ -173,4 +184,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    
+    // Razorpay SDK dependencies
+    implementation project(':react-native-razorpay')
+    implementation 'com.razorpay:checkout:1.6.26'
+    implementation 'com.android.support:multidex:1.0.3'
 }
