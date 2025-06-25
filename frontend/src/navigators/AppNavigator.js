@@ -116,7 +116,7 @@ function VendorTabNavigator() {
                         iconName = focused ? 'list' : 'list-outline';
                     } else if (route.name === 'Menu') {
                         iconName = focused ? 'restaurant' : 'restaurant-outline';
-                    } else if (route.name === 'Menu Scheduler') {
+                    } else if (route.name === 'Schedule') {
                         iconName = focused ? 'calendar' : 'calendar-outline';
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';

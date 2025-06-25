@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL configuration
 export const getBaseUrl = () => {
-    return "http://172.22.4.4:5000/api";
+    return "http://192.168.22.45:5000/api";
 };
 
 // Debug flag for API requests - set to false for real API calls
